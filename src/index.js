@@ -1,210 +1,65 @@
-const test = document.getElementById('demo');
+import * as d3 from "d3";
+
+console.log(d3);
+
+const test = document.getElementById('title');
 
 const helloWorld = document.createElement('h1');
 helloWorld.innerText = 'Middleware Dendrogram';
 
 test.appendChild(helloWorld);
 
+const flare = {
+  name: "app",
+  children: [
+    {
+      name: "/home",
+      children: [{ name: "/about",
+        children:[{ name: ":path*", children: [{name: ":/a"}, {name: ":/b"}, {name: ":/c"}] }]
+        }, 
+    { name: "/order", children: [{ name: '/order/:id', children: [{ name: ':item'}]}, { name: ':item' }]}]
+    },
+    { name: "/dashboard",
+      children:[{ name: "/dashboard/user", children: [{name: "/dashboard/user/settings"}, {name: "/dashboard/user/config"}] }]
+      }
+  ],
+};
 
+const createChart = (data) => {
+  const width = 1000;
+  const marginTop = 30;
+  const marginRight = 30;
+  const marginBottom = 30;
+  const marginLeft = 40;
 
+  // Rows are separated by dx pixels, columns by dy pixels. These names can be counter-intuitive
+  // (dx is a height, and dy a width). This because the tree must be viewed with the root at the
+  // “bottom”, in the data domain. The width of a column is based on the tree’s height.
+  const root = d3.hierarchy(data);
+  const dx = 100;
+  const dy = (width - marginRight - marginLeft) / (1 + root.height);
 
-
-
-// import * as d3 from "d3";
-
-
-
-// const svg = d3
-//   .create("svg")
-//   .attr("viewBox", [(-dy * padding) / 2, x0 - dx, width, height])
-//   .attr("width", width)
-//   .attr("height", height)
-//   .attr("style", "max-width: 100%; height: auto; height: intrinsic;")
-//   .attr("font-family", "sans-serif")
-//   .attr("font-size", 10);
-
-// svg
-//   .append("g")
-//   .attr("fill", "none")
-//   .attr("stroke", stroke)
-//   .attr("stroke-opacity", strokeOpacity)
-//   .attr("stroke-linecap", strokeLinecap)
-//   .attr("stroke-linejoin", strokeLinejoin)
-//   .attr("stroke-width", strokeWidth)
-//   .selectAll("path")
-//   .data(root.links())
-//   .join("path")
-//   .attr(
-//     "d",
-//     d3
-//       .link(curve)
-//       .x((d) => d.y)
-//       .y((d) => d.x)
-//   );
-
-// const flare = {
-//   name: "app",
-//   children: [
-//     {
-//       name: "/home",
-//       children: [{ name: "/about",
-//         children:[{ name: ":path*", children: [{name: ":/a"}, {name: ":/b"}, {name: ":/c"}] }]
-//         }, 
-//     { name: "/order", children: [{ name: '/order/:id', children: [{ name: ':item'}]}, { name: ':item' }]}]
-//     },
-//     { name: "/dashboard",
-//       children:[{ name: "/dashboard/user", children: [{name: "/dashboard/user/settings"}, {name: "/dashboard/user/config"}] }]
-//       }
-//   ],
-// };
-
-
-// // https://observablehq.com/@d3/tree
-// function Tree(
-//   data,
-//   {
-//     // data is either tabular (array of objects) or hierarchy (nested objects)
-//     path, // as an alternative to id and parentId, returns an array identifier, imputing internal nodes
-//     id = Array.isArray(data) ? (d) => d.id : null, // if tabular data, given a d in data, returns a unique identifier (string)
-//     parentId = Array.isArray(data) ? (d) => d.parentId : null, // if tabular data, given a node d, returns its parent’s identifier
-//     children, // if hierarchical data, given a d in data, returns its children
-//     tree = d3.tree, // layout algorithm (typically d3.tree or d3.cluster)
-//     sort, // how to sort nodes prior to layout (e.g., (a, b) => d3.descending(a.height, b.height))
-//     label, // given a node d, returns the display name
-//     title, // given a node d, returns its hover text
-//     link, // given a node d, its link (if any)
-//     linkTarget = "_blank", // the target attribute for links (if any)
-//     width = 640, // outer width, in pixels
-//     height, // outer height, in pixels
-//     r = 15, // radius of nodes
-//     padding = 1, // horizontal padding for first and last column
-//     fill = "#999", // fill for nodes
-//     fillOpacity, // fill opacity for nodes
-//     stroke = "#555", // stroke for links
-//     strokeWidth = 1.5, // stroke width for links
-//     strokeOpacity = 0.4, // stroke opacity for links
-//     strokeLinejoin, // stroke line join for links
-//     strokeLinecap, // stroke line cap for links
-//     halo = "#fff", // color of label halo
-//     haloWidth = 3, // padding around the labels
-//     curve = d3.curveBumpX, // curve for the link
-//     dyNode = 10 // vertical height of node
-//   } = {}
-// ) {
-//   // If id and parentId options are specified, or the path option, use d3.stratify
-//   // to convert tabular data to a hierarchy; otherwise we assume that the data is
-//   // specified as an object {children} with nested objects (a.k.a. the “flare.json”
-//   // format), and use d3.hierarchy.
-//   const root =
-//     path != null
-//       ? d3.stratify().path(path)(data)
-//       : id != null || parentId != null
-//       ? d3.stratify().id(id).parentId(parentId)(data)
-//       : d3.hierarchy(data, children);
-
-//   // Sort the nodes.
-//   if (sort != null) root.sort(sort);
-
-//   // Compute labels and titles.
-//   const descendants = root.descendants();
-//   const L = label == null ? null : descendants.map((d) => label(d.data, d));
-
-//   // Compute the layout.
-//   const dx = dyNode; // vertical height of node
-//   const dy = (width / (root.height + padding)) * 0.9; // reduced width by 90%, default is without *.9
-//   tree().nodeSize([dx, dy])(root);
-
-//   // Center the tree.
-//   let x0 = Infinity;
-//   let x1 = -x0;
-//   root.each((d) => {
-//     if (d.x > x1) x1 = d.x;
-//     if (d.x < x0) x0 = d.x;
-//   });
-
-//   // Compute the default height.
-//   if (height === undefined) height = x1 - x0 + dx * 2;
-
-//   // Use the required curve
-//   if (typeof curve !== "function") throw new Error(`Unsupported curve`);
-
-//   const svg = d3
-//     .create("svg")
-//     .attr("viewBox", [(-dy * padding) / 2, x0 - dx, width, height])
-//     .attr("width", width)
-//     .attr("height", height)
-//     .attr("style", "max-width: 100%; height: auto; height: intrinsic;")
-//     .attr("font-family", "sans-serif")
-//     .attr("font-size", 10);
-
-//   svg
-//     .append("g")
-//     .attr("fill", "none")
-//     .attr("stroke", stroke)
-//     .attr("stroke-opacity", strokeOpacity)
-//     .attr("stroke-linecap", strokeLinecap)
-//     .attr("stroke-linejoin", strokeLinejoin)
-//     .attr("stroke-width", strokeWidth)
-//     .selectAll("path")
-//     .data(root.links())
-//     .join("path")
-//     .attr(
-//       "d",
-//       d3
-//         .link(curve)
-//         .x((d) => d.y)
-//         .y((d) => d.x)
-//     );
-
-//   const node = svg
-//     .append("g")
-//     .selectAll("a")
-//     .data(root.descendants())
-//     .join("a")
-//     .attr("xlink:href", link == null ? null : (d) => link(d.data, d))
-//     .attr("target", link == null ? null : linkTarget)
-//     .attr("transform", (d) => `translate(${d.y},${d.x})`);
-
-//   node
-//     .append("circle")
-//     .attr("fill", (d) => (d.children ? stroke : fill))
-//     .attr("r", r)
-
-//   // Interactivity    
-//   node
-//     .on('click', () => {
-//     console.log('Node clicked')
-    
-//     let zoom = d3.zoom()
-//       .on('zoom', handleZoom);
-    
-//     function handleZoom(e) {
-//       console.log('handling zoom');
-//       d3.select('svg r')
-//         .attr('transform', e.transform);
-//     }
+    // Define the tree layout and the shape for links.
+    const tree = d3.tree().nodeSize([dx, dy]);
+    const diagonal = d3.linkHorizontal().x(d => d.y).y(d => d.x);
   
-//     function initZoom() {
-//       console.log('init zooming')
-//       d3.select('svg g')
-//         .call(d3.zoom());
-//     }
+    // Create the SVG container, a layer for the links and a layer for the nodes.
+    const svg = d3.create("svg")
+        .attr("width", width)
+        .attr("height", dx)
+        .attr("viewBox", [-marginLeft, -marginTop, width, dx])
+        .attr("style", "max-width: 100%; height: auto; font: 10px sans-serif; user-select: none;");
   
-    
-//     // function update() {
-//     //   console.log('updating');
-//     //   d3.select('svg g')
-//     //     .selectAll('circle')
-//     //     .data(data)
-//     //     .join('circle')
-//     //     .attr('cx', function(d) { return d.x; })
-//     //     .attr('cy', function(d) { return d.y; })
-//     //     .attr('r', 3);
-//     // }
-
-//     const gNode = svg.append("g")
-//       .attr("cursor", "pointer")
-//       .attr("pointer-events", "all");
+    // styles the lines between nodes
+    const gLink = svg.append("g")
+        .attr("fill", "none")
+        .attr("stroke", "#555")
+        .attr("stroke-opacity", 0.5)
+        .attr("stroke-width", 3);
+  
+    const gNode = svg.append("g")
+        .attr("cursor", "pointer")
+        .attr("pointer-events", "all");
   
     function update(event, source) {
       const duration = event?.altKey ? 2500 : 250; // hold the alt key to slow down the transition
@@ -243,20 +98,37 @@ test.appendChild(helloWorld);
             update(event, d);
           });
   
-//       nodeEnter.append("circle")
-//           .attr("r", 2.5)
-//           .attr("fill", d => d._children ? "#555" : "#999")
-//           .attr("stroke-width", 10);
-  
-//       nodeEnter.append("text")
-//           .attr("dy", "0.31em")
-//           .attr("x", d => d._children ? -6 : 6)
-//           .attr("text-anchor", d => d._children ? "end" : "start")
-//           .text(d => d.data.name)
-//           .attr("stroke-linejoin", "round")
-//           .attr("stroke-width", 3)
-//           .attr("stroke", "white")
-//           .attr("paint-order", "stroke");
+      // styles the node as a circle
+      // nodeEnter.append("circle")
+      //     .attr("r", 10)
+      //     .attr("width", 40)
+      //     .attr("height", 20)
+      //     .attr("fill", d => d._children ? "#555" : "#999")
+      //     .attr("stroke-width", 10);
+
+      // styles the node as a rectangle
+      nodeEnter.append("rect")
+        .attr("x", -20)
+        .attr("y", -10)
+        .attr("width", 40)
+        .attr("height", 20)
+        .attr("fill", d => d._children ? "red" : "blue")
+        .attr("stroke-width", 10);
+      
+      // styles the text taken from data
+      nodeEnter.append("text")
+          .attr("dy", "0.31em")
+          // changes x axis position of text depending on if node has children
+          // .attr("x", d => d._children ? -6 : 6)
+          // .attr("text-anchor", d => d._children ? "end" : "start")
+          .attr("y", -20)
+          .attr("x", -20)
+          .attr("font-size", 15)
+          .text(d => d.data.name)
+          .attr("stroke-linejoin", "round")
+          .attr("stroke-width", 3)
+          .attr("stroke", "white")
+          .attr("paint-order", "stroke");
   
       // Transition nodes to their new position.
       const nodeUpdate = node.merge(nodeEnter).transition(transition)
