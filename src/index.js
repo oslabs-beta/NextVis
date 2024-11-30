@@ -2,10 +2,10 @@ import * as d3 from "d3";
 
 console.log(d3);
 
-const test = document.getElementById('demo');
+const test = document.getElementById('title');
 
 const helloWorld = document.createElement('h1');
-helloWorld.innerText = 'Hello World!';
+helloWorld.innerText = 'Middleware Dendrogram';
 
 test.appendChild(helloWorld);
 
@@ -26,17 +26,17 @@ const flare = {
 };
 
 const createChart = (data) => {
-  const width = 928;
-  const marginTop = 10;
-  const marginRight = 10;
-  const marginBottom = 10;
+  const width = 1000;
+  const marginTop = 30;
+  const marginRight = 30;
+  const marginBottom = 30;
   const marginLeft = 40;
 
   // Rows are separated by dx pixels, columns by dy pixels. These names can be counter-intuitive
   // (dx is a height, and dy a width). This because the tree must be viewed with the root at the
   // “bottom”, in the data domain. The width of a column is based on the tree’s height.
   const root = d3.hierarchy(data);
-  const dx = 10;
+  const dx = 100;
   const dy = (width - marginRight - marginLeft) / (1 + root.height);
 
     // Define the tree layout and the shape for links.
@@ -50,11 +50,12 @@ const createChart = (data) => {
         .attr("viewBox", [-marginLeft, -marginTop, width, dx])
         .attr("style", "max-width: 100%; height: auto; font: 10px sans-serif; user-select: none;");
   
+    // styles the lines between nodes
     const gLink = svg.append("g")
         .attr("fill", "none")
         .attr("stroke", "#555")
-        .attr("stroke-opacity", 0.4)
-        .attr("stroke-width", 1.5);
+        .attr("stroke-opacity", 0.5)
+        .attr("stroke-width", 3);
   
     const gNode = svg.append("g")
         .attr("cursor", "pointer")
@@ -97,15 +98,32 @@ const createChart = (data) => {
             update(event, d);
           });
   
-      nodeEnter.append("circle")
-          .attr("r", 2.5)
-          .attr("fill", d => d._children ? "#555" : "#999")
-          .attr("stroke-width", 10);
-  
+      // styles the node as a circle
+      // nodeEnter.append("circle")
+      //     .attr("r", 10)
+      //     .attr("width", 40)
+      //     .attr("height", 20)
+      //     .attr("fill", d => d._children ? "#555" : "#999")
+      //     .attr("stroke-width", 10);
+
+      // styles the node as a rectangle
+      nodeEnter.append("rect")
+        .attr("x", -20)
+        .attr("y", -10)
+        .attr("width", 40)
+        .attr("height", 20)
+        .attr("fill", d => d._children ? "red" : "blue")
+        .attr("stroke-width", 10);
+      
+      // styles the text taken from data
       nodeEnter.append("text")
           .attr("dy", "0.31em")
-          .attr("x", d => d._children ? -6 : 6)
-          .attr("text-anchor", d => d._children ? "end" : "start")
+          // changes x axis position of text depending on if node has children
+          // .attr("x", d => d._children ? -6 : 6)
+          // .attr("text-anchor", d => d._children ? "end" : "start")
+          .attr("y", -20)
+          .attr("x", -20)
+          .attr("font-size", 15)
           .text(d => d.data.name)
           .attr("stroke-linejoin", "round")
           .attr("stroke-width", 3)
