@@ -16,6 +16,9 @@ module.exports = {
     hot: true,
     port: 8080,
   },
+  resolve: {
+    extensions: [".js", ".json"],
+  },
   plugins: [
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, "src", "index.html")
