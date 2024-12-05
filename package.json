@@ -15,7 +15,13 @@
     "commands": [
       {
         "command": "nextFlow.helloWorld",
-        "title": "Hello World"
+        "title": "Hello World",
+        "category": "Testing"
+      },
+      {
+        "command": "catCoding.start",
+        "title": "Start a new cat coding session",
+        "category": "Cat Coding"
       }
     ]
   },
