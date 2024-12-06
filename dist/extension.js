@@ -44,6 +44,8 @@ exports.deactivate = deactivate;
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const vscode = __importStar(__webpack_require__(1));
+const fs = __importStar(__webpack_require__(2));
+const path = __importStar(__webpack_require__(3));
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 function activate(context) {
@@ -58,9 +60,26 @@ function activate(context) {
         // Display a message box to the user
         vscode.window.showInformationMessage('Hello VS Code!');
     });
-    context.subscriptions.push(disposable);
+    const catCodingExample = vscode.commands.registerCommand('catCoding.start', () => {
+        const panel = vscode.window.createWebviewPanel('catCoding', 'Cat Coding', vscode.ViewColumn.One, {});
+        const data = fs.readFileSync(path.join(__dirname, '../D3/src/index.html'), 'utf8');
+        panel.webview.html = data;
+    });
+    context.subscriptions.push(catCodingExample);
 }
-5;
+function getWebviewContent() {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cat Coding</title>
+</head>
+<body>
+    <img src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif" width="300" />
+</body>
+</html>`;
+}
 // This method is called when your extension is deactivated
 function deactivate() { }
 
@@ -70,6 +89,18 @@ function deactivate() { }
 /***/ ((module) => {
 
 module.exports = require("vscode");
+
+/***/ }),
+/* 2 */
+/***/ ((module) => {
+
+module.exports = require("fs");
+
+/***/ }),
+/* 3 */
+/***/ ((module) => {
+
+module.exports = require("path");
 
 /***/ })
 /******/ 	]);
