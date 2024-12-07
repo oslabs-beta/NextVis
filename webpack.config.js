@@ -49,7 +49,7 @@ const extensionConfig = {
 const webviewConfig = {
   target: 'web',
   mode: 'none',
-  entry: './src/webview/index.js',
+  entry: './src/webview/d3Chart.js',
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'webview.js',

@@ -31556,11 +31556,6 @@ __webpack_require__.r(__webpack_exports__);
 
 const test = document.getElementById('chart');
 
-const helloWorld = document.createElement('h1');
-helloWorld.innerText = 'Middleware Dendrogram Tree';
-
-test.appendChild(helloWorld);
-
 const flare = {
   name: "app",
   children: [

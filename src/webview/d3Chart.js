@@ -1,14 +1,5 @@
 import * as d3 from "d3";
 
-console.log(d3);
-
-const test = document.getElementById('title');
-
-const helloWorld = document.createElement('h1');
-helloWorld.innerText = 'Middleware Dendrogram';
-
-test.appendChild(helloWorld);
-
 const flare = {
   name: "app",
   children: [
