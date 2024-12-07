@@ -44,7 +44,6 @@ exports.deactivate = deactivate;
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const vscode = __importStar(__webpack_require__(1));
-const fs = __importStar(__webpack_require__(2));
 const path = __importStar(__webpack_require__(3));
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -55,30 +54,28 @@ function activate(context) {
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with registerCommand
     // The commandId parameter must match the command field in package.json
-    const disposable = vscode.commands.registerCommand('nextFlow.helloWorld', () => {
-        // The code you place here will be executed every time your command is executed
-        // Display a message box to the user
-        vscode.window.showInformationMessage('Hello VS Code!');
+    const d3 = vscode.commands.registerCommand('nextFlow.start', () => {
+        const panel = vscode.window.createWebviewPanel('nextFlow', 'NextFlow', vscode.ViewColumn.One, {
+            enableScripts: true
+        });
+        const scriptUri = panel.webview.asWebviewUri(vscode.Uri.file(path.join(context.extensionPath, "dist", "webview.js")));
+        panel.webview.html = getWebviewContent(scriptUri);
     });
-    const catCodingExample = vscode.commands.registerCommand('catCoding.start', () => {
-        const panel = vscode.window.createWebviewPanel('catCoding', 'Cat Coding', vscode.ViewColumn.One, {});
-        const data = fs.readFileSync(path.join(__dirname, '../D3/src/index.html'), 'utf8');
-        panel.webview.html = data;
-    });
-    context.subscriptions.push(catCodingExample);
+    context.subscriptions.push(d3);
 }
-function getWebviewContent() {
+function getWebviewContent(uri) {
     return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cat Coding</title>
-</head>
-<body>
-    <img src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif" width="300" />
-</body>
-</html>`;
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Middleware Dendrogram</title>
+      </head>
+      <body>
+        <div id="chart"></div>
+        <script src="${uri}"></script>
+      </body>
+      </html>`;
 }
 // This method is called when your extension is deactivated
 function deactivate() { }
@@ -91,12 +88,7 @@ function deactivate() { }
 module.exports = require("vscode");
 
 /***/ }),
-/* 2 */
-/***/ ((module) => {
-
-module.exports = require("fs");
-
-/***/ }),
+/* 2 */,
 /* 3 */
 /***/ ((module) => {
 

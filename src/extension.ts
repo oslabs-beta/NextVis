@@ -1,7 +1,6 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import * as path from 'path';
 
 // This method is called when your extension is activated
@@ -15,40 +14,38 @@ export function activate(context: vscode.ExtensionContext) {
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('nextFlow.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello VS Code!');
-	});
+  const d3 = vscode.commands.registerCommand('nextFlow.start', () => {
+    const panel = vscode.window.createWebviewPanel(
+      'nextFlow',
+      'NextFlow',
+      vscode.ViewColumn.One,
+      {
+        enableScripts: true
+      }
+    );
+    const scriptUri = panel.webview.asWebviewUri(
+      vscode.Uri.file(path.join(context.extensionPath, "dist", "webview.js"))
+    );
 
-	const catCodingExample = vscode.commands.registerCommand('catCoding.start', () => {
-		const panel = vscode.window.createWebviewPanel(
-			'catCoding',
-			'Cat Coding',
-			vscode.ViewColumn.One,
-			{}
-		);
-		const data = fs.readFileSync(path.join(__dirname, '../D3/src/index.html'), 'utf8');
+    panel.webview.html = getWebviewContent(scriptUri);
+  });
 
-		panel.webview.html = data;
-
-	});
-
-	context.subscriptions.push(catCodingExample);
+	context.subscriptions.push(d3);
 }
 
-function getWebviewContent() {
+function getWebviewContent(uri: any) {
   return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cat Coding</title>
-</head>
-<body>
-    <img src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif" width="300" />
-</body>
-</html>`;
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Middleware Dendrogram</title>
+      </head>
+      <body>
+        <div id="chart"></div>
+        <script src="${uri}"></script>
+      </body>
+      </html>`;
 }
 
 // This method is called when your extension is deactivated
