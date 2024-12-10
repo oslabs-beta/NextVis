@@ -44,7 +44,7 @@ exports.deactivate = deactivate;
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const vscode = __importStar(__webpack_require__(1));
-const path = __importStar(__webpack_require__(3));
+const path = __importStar(__webpack_require__(2));
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 function activate(context) {
@@ -60,6 +60,9 @@ function activate(context) {
         });
         const scriptUri = panel.webview.asWebviewUri(vscode.Uri.file(path.join(context.extensionPath, "dist", "webview.js")));
         panel.webview.html = getWebviewContent(scriptUri);
+        panel.webview.onDidReceiveMessage(message => {
+            vscode.window.showErrorMessage(message.text);
+        });
     });
     context.subscriptions.push(d3);
 }
@@ -72,12 +75,6 @@ function getWebviewContent(uri) {
         <title>Middleware Dendrogram</title>
       </head>
       <body>
-        <h1>Middleware Tree</h1>
-        <div>
-          <input type="file" id="middlewareFile">
-          <button type='submit' id="loadMiddleware">Load Middleware</button>
-        </div>
-        <div id="chart"></div>
         <script src="${uri}"></script>
       </body>
       </html>`;
@@ -325,8 +322,7 @@ function deactivate() { }
 module.exports = require("vscode");
 
 /***/ }),
-/* 2 */,
-/* 3 */
+/* 2 */
 /***/ ((module) => {
 
 module.exports = require("path");

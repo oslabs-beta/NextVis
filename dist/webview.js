@@ -31554,24 +31554,6 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var d3__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1);
 
 
-const test = document.getElementById('chart');
-
-const flare = {
-  name: "app",
-  children: [
-    {
-      name: "/home",
-      children: [{ name: "/about",
-        children:[{ name: ":path*", children: [{name: ":/a"}, {name: ":/b"}, {name: ":/c"}] }]
-        }, 
-    { name: "/order", children: [{ name: '/order/:id', children: [{ name: ':item'}]}, { name: ':item' }]}]
-    },
-    { name: "/dashboard",
-      children:[{ name: "/dashboard/user", children: [{name: "/dashboard/user/settings"}, {name: "/dashboard/user/config"}] }]
-      }
-  ],
-};
-
 const createChart = (data) => {
   const width = 1000;
   const marginTop = 30;
@@ -31731,12 +31713,78 @@ const createChart = (data) => {
     update(null, root);
   
     return svg.node();
-}
+};
 
-const dendrogram = createChart(flare);
+const vscode = acquireVsCodeApi();
 
-const chart = document.getElementById("chart");
-chart.appendChild(dendrogram);
+const container = document.body;
+
+const title = document.createElement("h1");
+title.textContent = "Middleware Tree";
+
+
+const fileInput = document.createElement("input");
+fileInput.type = "file";
+fileInput.id = "middlewareFile";
+fileInput.innerText = "Select middleware file";
+
+const loadButton = document.createElement("button");
+loadButton.type = "button";
+loadButton.id = "loadMiddleware";
+loadButton.textContent = "Load middleware tree";
+
+const fileContainer = document.createElement("div");
+fileContainer.appendChild(fileInput);
+fileContainer.appendChild(loadButton);
+
+const chartContainer = document.createElement("div");
+chartContainer.id = "chart";
+
+container.appendChild(title);
+container.appendChild(fileContainer);
+container.appendChild(chartContainer);
+
+loadButton.addEventListener("click", () => {
+  console.log('Load Middleware button clicked');
+
+  console.log('fileInput.value:', fileInput.value);
+
+  if (fileInput.value) {
+    const flare = {
+      name: "app",
+      children: [
+        {
+          name: "/home",
+          children: [{ name: "/about",
+            children:[{ name: ":path*", children: [{name: ":/a"}, {name: ":/b"}, {name: ":/c"}] }]
+            }, 
+        { name: "/order", children: [{ name: '/order/:id', children: [{ name: ':item'}]}, { name: ':item' }]}]
+        },
+        { name: "/dashboard",
+          children:[{ name: "/dashboard/user", children: [{name: "/dashboard/user/settings"}, {name: "/dashboard/user/config"}] }]
+          }
+      ],
+    };
+
+    const dendrogram = createChart(flare);
+    
+    const chart = document.getElementById("chart");
+    chart.appendChild(dendrogram);
+
+    title.textContent = `Middleware Tree for ${fileInput.value}`;
+
+  } else {
+    vscode.postMessage({
+      command: 'alert',
+      text: 'Please select a middleware file'
+    });
+  }
+
+});
+
+
+
+
 })();
 
 /******/ })()

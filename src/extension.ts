@@ -28,6 +28,12 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     panel.webview.html = getWebviewContent(scriptUri);
+
+    panel.webview.onDidReceiveMessage(
+      message => {
+        vscode.window.showErrorMessage(message.text);
+      }
+    )
   });
 
 	context.subscriptions.push(d3);
@@ -42,12 +48,6 @@ function getWebviewContent(uri: vscode.Uri) {
         <title>Middleware Dendrogram</title>
       </head>
       <body>
-        <h1>Middleware Tree</h1>
-        <div>
-          <input type="file" id="middlewareFile">
-          <button type='submit' id="loadMiddleware">Load Middleware</button>
-        </div>
-        <div id="chart"></div>
         <script src="${uri}"></script>
       </body>
       </html>`;
