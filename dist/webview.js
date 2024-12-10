@@ -31616,12 +31616,26 @@ const createChart = (data) => {
       // Update the nodes…
       const node = gNode.selectAll("g")
         .data(nodes, d => d.id);
+      
+      
   
       // Enter any new nodes at the parent's previous position.
       const nodeEnter = node.enter().append("g")
           .attr("transform", d => `translate(${source.y0},${source.x0})`)
           .attr("fill-opacity", 0)
           .attr("stroke-opacity", 0)
+          .on('mouseover', function(d) {
+            let g = d3__WEBPACK_IMPORTED_MODULE_0__.select(this);
+            let info = g.append('text')
+              .classed('info', true)
+              .attr('x', 20)
+              .attr('y', 10)
+              .attr("stroke", 'white')
+              .text('TEST'); // parse from script --> matcher or conditional
+          })
+          .on('mouseout', function(){
+            d3__WEBPACK_IMPORTED_MODULE_0__.select(this).select('text.info').remove();
+          })
           .on("click", (event, d) => {
             d.children = d.children ? null : d._children;
             update(event, d);
@@ -31747,7 +31761,7 @@ container.appendChild(chartContainer);
 loadButton.addEventListener("click", () => {
   console.log('Load Middleware button clicked');
 
-  console.log('fileInput.value:', fileInput.value);
+  console.log('fileInput.value:', fileInput.files);
 
   if (fileInput.value) {
     const flare = {
