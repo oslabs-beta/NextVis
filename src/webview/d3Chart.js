@@ -1,30 +1,5 @@
 import * as d3 from "d3";
 
-console.log(d3);
-
-const test = document.getElementById('title');
-
-const helloWorld = document.createElement('h1');
-helloWorld.innerText = 'Middleware Dendrogram';
-
-test.appendChild(helloWorld);
-
-const flare = {
-  name: "app",
-  children: [
-    {
-      name: "/home",
-      children: [{ name: "/about",
-        children:[{ name: ":path*", children: [{name: ":/a"}, {name: ":/b"}, {name: ":/c"}] }]
-        }, 
-    { name: "/order", children: [{ name: '/order/:id', children: [{ name: ':item'}]}, { name: ':item' }]}]
-    },
-    { name: "/dashboard",
-      children:[{ name: "/dashboard/user", children: [{name: "/dashboard/user/settings"}, {name: "/dashboard/user/config"}] }]
-      }
-  ],
-};
-
 const createChart = (data) => {
   const width = 1000;
   const marginTop = 30;
@@ -87,12 +62,26 @@ const createChart = (data) => {
       // Update the nodes…
       const node = gNode.selectAll("g")
         .data(nodes, d => d.id);
+      
+      
   
       // Enter any new nodes at the parent's previous position.
       const nodeEnter = node.enter().append("g")
           .attr("transform", d => `translate(${source.y0},${source.x0})`)
           .attr("fill-opacity", 0)
           .attr("stroke-opacity", 0)
+          .on('mouseover', function(d) {
+            let g = d3.select(this);
+            let info = g.append('text')
+              .classed('info', true)
+              .attr('x', 20)
+              .attr('y', 10)
+              .attr("stroke", 'white')
+              .text('TEST'); // parse from script --> matcher or conditional
+          })
+          .on('mouseout', function(){
+            d3.select(this).select('text.info').remove();
+          })
           .on("click", (event, d) => {
             d.children = d.children ? null : d._children;
             update(event, d);
@@ -184,9 +173,74 @@ const createChart = (data) => {
     update(null, root);
   
     return svg.node();
-}
+};
 
-const dendrogram = createChart(flare);
+const vscode = acquireVsCodeApi();
 
-const chart = document.getElementById("chart");
-chart.appendChild(dendrogram);
+const container = document.body;
+
+const title = document.createElement("h1");
+title.textContent = "Middleware Tree";
+
+
+const fileInput = document.createElement("input");
+fileInput.type = "file";
+fileInput.id = "middlewareFile";
+fileInput.innerText = "Select middleware file";
+
+const loadButton = document.createElement("button");
+loadButton.type = "button";
+loadButton.id = "loadMiddleware";
+loadButton.textContent = "Load middleware tree";
+
+const fileContainer = document.createElement("div");
+fileContainer.appendChild(fileInput);
+fileContainer.appendChild(loadButton);
+
+const chartContainer = document.createElement("div");
+chartContainer.id = "chart";
+
+container.appendChild(title);
+container.appendChild(fileContainer);
+container.appendChild(chartContainer);
+
+loadButton.addEventListener("click", () => {
+  console.log('Load Middleware button clicked');
+
+  console.log('fileInput.value:', fileInput.files);
+
+  if (fileInput.value) {
+    const flare = {
+      name: "app",
+      children: [
+        {
+          name: "/home",
+          children: [{ name: "/about",
+            children:[{ name: ":path*", children: [{name: ":/a"}, {name: ":/b"}, {name: ":/c"}] }]
+            }, 
+        { name: "/order", children: [{ name: '/order/:id', children: [{ name: ':item'}]}, { name: ':item' }]}]
+        },
+        { name: "/dashboard",
+          children:[{ name: "/dashboard/user", children: [{name: "/dashboard/user/settings"}, {name: "/dashboard/user/config"}] }]
+          }
+      ],
+    };
+
+    const dendrogram = createChart(flare);
+    
+    const chart = document.getElementById("chart");
+    chart.appendChild(dendrogram);
+
+    title.textContent = `Middleware Tree for ${fileInput.value}`;
+
+  } else {
+    vscode.postMessage({
+      command: 'alert',
+      text: 'Please select a middleware file'
+    });
+  }
+
+});
+
+
+
