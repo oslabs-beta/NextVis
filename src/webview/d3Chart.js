@@ -237,9 +237,10 @@ window.addEventListener("message", event => {
     case 'filePicked':
       document.getElementById("middlewareFile").textContent = `Selected file: ${message.filePath}`;
       if (fileInput.textContent) {
-        const dendrogram = createChart(message.flare);
-        const chart = document.getElementById("chart");
-        chart.appendChild(dendrogram);
+        // const dendrogram = createChart(message.flare);
+        console.log('message.flare: ', message.flare);
+        // const chart = document.getElementById("chart");
+        // chart.appendChild(dendrogram);
         
         title.textContent = `Middleware Tree for ${message.compName}`;
         

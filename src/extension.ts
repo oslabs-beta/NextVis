@@ -3,17 +3,17 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import readline from 'readline';
+import * as readline from 'readline';
 import * as parser from'@babel/parser';
 import traverse from '@babel/traverse';
 import t from '@babel/types';
 // import parsingScript from './webview/parsingScript';
 
 interface FileObject {
-  file: string,
-  name: string,
-  path: Set<string | null>,
-  matcher: Set<string | null>
+  file: string;
+  name: string;
+  path: Set<string>;
+  matcher: Set<string>;
 }
 
 const parsingScript = (filePath: string) => {
@@ -68,7 +68,7 @@ const parsingScript = (filePath: string) => {
       return JSON.stringify(finalObject);
     };
     
-    const pairMatcherWithFile = async (fileObject: {file: string, name: string, path: Set<string | void>, matcher: Set<string | null> }) =>{
+    const pairMatcherWithFile = async (fileObject: FileObject): Promise<void> => {
       try {
       if (!fileObject.matcher) {
         fileObject.matcher = new Set();
@@ -109,7 +109,7 @@ const parsingScript = (filePath: string) => {
       }
     }
     
-    const pairPathWithMiddleware = (fileObject: FileObject) => {
+    const pairPathWithMiddleware = (fileObject: FileObject): Promise<void> => {
       return new Promise((resolve, reject) => {
         if (!fileObject.path) {
           fileObject.path = new Set();
@@ -178,7 +178,7 @@ const parsingScript = (filePath: string) => {
     
         rl.on('close', () => {
           console.log('Final fileObject paths:', Array.from(fileObject.path));
-          Promise.resolve(); // Resolve the promise after processing is done
+          resolve(); // Resolve the promise after processing is done
         });
     
         rl.on('error', (error: Error) => {
@@ -187,57 +187,7 @@ const parsingScript = (filePath: string) => {
       });
     };
     
-    // const getPathNames = (filePath) => {
-    //   const innerFileText = fs.readFileSync(filePath, 'utf8');
-    
-    //   // Remove single-line comments and multi-line comments
-    //   const noCommentsText = innerFileText
-    //     .replace(/\/\/.*$/gm, '') // Remove single-line comments
-    //     .replace(/\/\*[\s\S]*?\*\//g, ''); // Remove multi-line comments
-    
-    //   // Split the content into lines
-    //   const lines = noCommentsText.split('\n');
-    
-    //   // Filter out lines that start with 'import' or 'require' (for imports)
-    //   const filteredLines = lines.filter(line => !line.trim().startsWith('import') && !line.trim().startsWith('require'));
-    
-    //   // Define a regex to match paths starting with '/' but exclude those with 'import' or 'require'
-    //   const pathRegex = /(?<!import\s+['"]|require\(['"])\/[a-zA-Z0-9-_\/]+/g;
-    
-    //   // Create a Set to store unique paths
-    //   const uniquePaths = new Set();
-    
-    //   // Iterate through each line and find matches
-    //   filteredLines.forEach(line => {
-    //     const pathMatches = line.match(pathRegex);
-    
-    //     if (pathMatches) {
-    //       pathMatches.forEach(path => {
-    //         uniquePaths.add(path); // Store path directly in the Set
-    //       });
-    //     }
-    //   });
-    
-    //   // Return the Set as an array
-    //   return Array.from(uniquePaths);
-    // };
-    
-    // const analyzeFilePaths = (finalExports) => {
-    //   const checkedPaths = new Set();
-    //   finalExports.forEach((file) => {
-    //     if (file.name !== 'config') {
-    //       checkedPaths.add(file);
-    //     }
-    //   });
-    //   checkedPaths.forEach((path) => {
-    //     // go inside file, create path array for it and if its name key is config, delete it
-    //     // console.log('path being used :>> ', path);
-    //     pairPathWithMiddleware(path);
-    //     //  console.log('path :>> ', path);
-    //   });
-    // };
-    
-    const analyzeMiddleware = async (filePath: string, finalExports: any = []) => {
+    const analyzeMiddleware = async (filePath: string, finalExports: FileObject[] = []) => {
       try {
         const code = fs.readFileSync(filePath, 'utf8');
         const ast = parser.parse(code, {
@@ -293,17 +243,19 @@ const parsingScript = (filePath: string) => {
         });
     
         finalExports.push(...exports);
+        console.log('finalExports:', finalExports);
     
         // Recursively analyze imports
         for (const importItem of imports) {
           if (importItem.source.includes('.')) {
             const absolutePath = path.join(
-              __dirname,
-              `../large-testapp/src/app/middlewares/${importItem.source.replace(
+              path.dirname(filePath),
+              `${importItem.source.replace(
                 './',
                 ''
               )}.ts`
             );
+            console.log('absolutePath:', absolutePath);
     
             await analyzeMiddleware(absolutePath, finalExports); // Await recursive call
           }
@@ -314,13 +266,17 @@ const parsingScript = (filePath: string) => {
         const filteredExports = finalExports.filter(
           (file: FileObject) => file.name !== 'config'
         );
+
+        console.log('filteredExports before pair functions :>> ', filteredExports);
     
         for (const file of filteredExports) {
           await pairPathWithMiddleware(file); // Await pairPathWithMiddleware for each file
+          console.log('filteredExports after pairing with middleware:>> ', filteredExports);
           await pairMatcherWithFile(file);
+          console.log('filteredExports inside pairing with matcher :>> ', filteredExports);
         }
-    
-        console.log('finalExports :>> ', filteredExports);
+        
+        console.log('filteredExports after pair functions :>> ', filteredExports);
         jsonCreator(filteredExports);
       } catch (error) {
         console.log(error);
@@ -382,8 +338,10 @@ export function activate(context: vscode.ExtensionContext) {
             if (fileUri && fileUri[0]) {
               const filePath = fileUri[0].fsPath;
               const flare = parsingScript(filePath);
+              console.log('flare in extension.ts: ', flare);
               console.log('filePath: ', filePath);
               const baseDir = path.dirname(filePath);
+              console.log('baseDir: ', baseDir);
               const compName = path.parse(filePath).base;
               panel.webview.postMessage({ command: 'filePicked', flare, filePath, baseDir, compName });
             }
