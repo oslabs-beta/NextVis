@@ -42,6 +42,7 @@
     "test": "vscode-test"
   },
   "devDependencies": {
+    "@types/babel__traverse": "^7.20.6",
     "@types/mocha": "^10.0.9",
     "@types/node": "20.x",
     "@types/vscode": "^1.95.0",
@@ -56,6 +57,10 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
+    "@babel/parser": "^7.26.3",
+    "@babel/traverse": "^7.26.4",
+    "@babel/types": "^7.26.3",
+    "@types/babel-traverse": "^6.25.10",
     "d3": "^7.9.0"
   }
 }

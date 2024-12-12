@@ -31728,6 +31728,22 @@ const createChart = (data) => {
   
     return svg.node();
 };
+// const flare = {
+//     name: "app",
+//     children: [
+//         {
+//             name: "/home",
+//             children: [{ name: "/about",
+//               children:[{ name: ":path*", children: [{name: ":/a"}, {name: ":/b"}, {name: ":/c"}] }]
+//               }, 
+//           { name: "/order", children: [{ name: '/order/:id', children: [{ name: ':item'}]}, { name: ':item' }]}]
+//           },
+//           { name: "/dashboard",
+//             children:[{ name: "/dashboard/user", children: [{name: "/dashboard/user/settings"}, {name: "/dashboard/user/config"}] }]
+//             }
+//         ],
+// };
+// const dendrogram = createChart(flare);
 
 const vscode = acquireVsCodeApi();
 
@@ -31737,10 +31753,10 @@ const title = document.createElement("h1");
 title.textContent = "Middleware Tree";
 
 
-const fileInput = document.createElement("input");
-fileInput.type = "file";
+const fileInput = document.createElement("div");
 fileInput.id = "middlewareFile";
-fileInput.innerText = "Select middleware file";
+// fileInput.type = "file";
+// fileInput.innerText = "Select middleware file";
 
 const loadButton = document.createElement("button");
 loadButton.type = "button";
@@ -31761,44 +31777,40 @@ container.appendChild(chartContainer);
 loadButton.addEventListener("click", () => {
   console.log('Load Middleware button clicked');
 
-  console.log('fileInput.value:', fileInput.files);
+  vscode.postMessage({ 
+    command: 'pickFile',
+    text: 'Picking file...'
+  });
+  
+});
 
-  if (fileInput.value) {
-    const flare = {
-      name: "app",
-      children: [
-        {
-          name: "/home",
-          children: [{ name: "/about",
-            children:[{ name: ":path*", children: [{name: ":/a"}, {name: ":/b"}, {name: ":/c"}] }]
-            }, 
-        { name: "/order", children: [{ name: '/order/:id', children: [{ name: ':item'}]}, { name: ':item' }]}]
-        },
-        { name: "/dashboard",
-          children:[{ name: "/dashboard/user", children: [{name: "/dashboard/user/settings"}, {name: "/dashboard/user/config"}] }]
-          }
-      ],
-    };
+window.addEventListener("message", event => {
+  const message = event.data; // The JSON data our extension sent
 
-    const dendrogram = createChart(flare);
-    
-    const chart = document.getElementById("chart");
-    chart.appendChild(dendrogram);
-
-    title.textContent = `Middleware Tree for ${fileInput.value}`;
-
-  } else {
-    vscode.postMessage({
-      command: 'alert',
-      text: 'Please select a middleware file'
-    });
+  switch (message.command) {
+    case 'filePicked':
+      document.getElementById("middlewareFile").textContent = `Selected file: ${message.filePath}`;
+      if (fileInput.textContent) {
+        const dendrogram = createChart(message.flare);
+        const chart = document.getElementById("chart");
+        chart.appendChild(dendrogram);
+        
+        title.textContent = `Middleware Tree for ${message.compName}`;
+        
+        
+      } else {
+        vscode.postMessage({
+          command: 'alert',
+          text: 'Please select a middleware file'
+        });
+      }
   }
-
 });
 
 
 
 
+      
 })();
 
 /******/ })()

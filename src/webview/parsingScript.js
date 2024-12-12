@@ -1,31 +1,19 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-import * as vscode from 'vscode';
-import * as path from 'path';
-import * as fs from 'fs';
-import readline from 'readline';
-import * as parser from'@babel/parser';
-import traverse from '@babel/traverse';
-import t from '@babel/types';
-// import parsingScript from './webview/parsingScript';
+const fs = require('fs');
+const path = require('path');
+const readline = require('readline');
+const parser = require('@babel/parser');
+const traverse = require('@babel/traverse').default;
 
-interface FileObject {
-  file: string,
-  name: string,
-  path: Set<string | null>,
-  matcher: Set<string | null>
-}
-
-const parsingScript = (filePath: string) => {
-    const getLastTwoSegments = (filePath: string) => {
+const parsingScript = (filePath) => {
+    const getLastTwoSegments = (filePath) => {
       const parts = filePath.split('/');
       // Get the last two parts
       return parts.slice(-2).join('/');
-    };
+    }
     
-    const jsonCreator = (arrayOfFinalExports: FileObject[], finalObject: any = {}) => {
+    const jsonCreator = (arrayOfFinalExports, finalObject = {}) => {
       // given the array, iterate through each object, this will be a new node everytime\
-      arrayOfFinalExports.forEach(object  => {
+      arrayOfFinalExports.forEach(object => {
         //  objects will have this format ex:  {
           //   name: 'middleware',
           //   file: '/home/anoyola/NextFlow-test-app/large-testapp/src/app/middlewares/mainMiddleware.ts',
@@ -33,7 +21,7 @@ const parsingScript = (filePath: string) => {
           //   matcher: Set(2) { '/protected/', '/login' }
           // },
         // lets cut the file path and include only the last two /s
-        let cutPath = getLastTwoSegments(object.file);
+        cutPath = getLastTwoSegments(object.file);
         // console.log(cutPath);
         // and then store the path into the final object under the key 'name' and add a children array to it
         if(!finalObject.name) {
@@ -42,13 +30,13 @@ const parsingScript = (filePath: string) => {
         }
         // console.log('finalObject :>> ', finalObject);
         // now lets look at the name key in our orignal object and add that to its children array. 
-        if (!finalObject.children.some((child: any) => child.name === object.name)) {
+        if (!finalObject.children.some(child => child.name === object.name)) {
           finalObject.children.push({ name: object.name, children: [] });
         }
         // we'll add that to the children array with the same name:ex, children:[];, format
         // if the object has valid paths, we'll add that to the children array of the middle ware function, in this case middleware
         if (object.path.size !== 0) {
-          const child = finalObject.children.find((child: any) => child.name === object.name);
+          const child = finalObject.children.find(child => child.name === object.name);
           if (child) {
             child.children = [...object.path];
             // console.log('child.children :>> ', child.children);
@@ -57,7 +45,7 @@ const parsingScript = (filePath: string) => {
         // console.log('finalObject :>> ', finalObject);
         // we'll add the matcher as a seperate key that can be ignored for now
         if (object.matcher.size !== 0) {
-          const child = finalObject.children.find((child: any) => child.name === object.name);
+          const child = finalObject.children.find(child => child.name === object.name);
           if (child) {
             child.matcher = [...object.matcher];
             // console.log('child.matcher :>> ', child.matcher);
@@ -66,9 +54,9 @@ const parsingScript = (filePath: string) => {
       });
       console.log('finalObject :>> ', finalObject);
       return JSON.stringify(finalObject);
-    };
+    }
     
-    const pairMatcherWithFile = async (fileObject: {file: string, name: string, path: Set<string | void>, matcher: Set<string | null> }) =>{
+    const pairMatcherWithFile = async (fileObject) =>{
       try {
       if (!fileObject.matcher) {
         fileObject.matcher = new Set();
@@ -82,7 +70,7 @@ const parsingScript = (filePath: string) => {
           crlfDelay: Infinity,
         });
     
-         rl.on('line', (line: string) => {
+         rl.on('line', (line) => {
           const cleanLine = line.trim();
     
           // If the line contains the word 'matcher' or any relevant keyword, apply regex matching
@@ -109,7 +97,7 @@ const parsingScript = (filePath: string) => {
       }
     }
     
-    const pairPathWithMiddleware = (fileObject: FileObject) => {
+    const pairPathWithMiddleware = (fileObject) => {
       return new Promise((resolve, reject) => {
         if (!fileObject.path) {
           fileObject.path = new Set();
@@ -121,7 +109,7 @@ const parsingScript = (filePath: string) => {
         });
         let inFunction = false;
     
-        rl.on('line', (line: string) => {
+        rl.on('line', (line) => {
           const cleanLine = line.trim();
           // Create a regex pattern to look for 'export function' followed by fileObject.name
           const regex = new RegExp(
@@ -178,10 +166,10 @@ const parsingScript = (filePath: string) => {
     
         rl.on('close', () => {
           console.log('Final fileObject paths:', Array.from(fileObject.path));
-          Promise.resolve(); // Resolve the promise after processing is done
+          resolve(); // Resolve the promise after processing is done
         });
     
-        rl.on('error', (error: Error) => {
+        rl.on('error', (error) => {
           reject(error); // Reject the promise if there's an error
         });
       });
@@ -237,7 +225,7 @@ const parsingScript = (filePath: string) => {
     //   });
     // };
     
-    const analyzeMiddleware = async (filePath: string, finalExports: any = []) => {
+    const analyzeMiddleware = async (filePath, finalExports = []) => {
       try {
         const code = fs.readFileSync(filePath, 'utf8');
         const ast = parser.parse(code, {
@@ -245,25 +233,25 @@ const parsingScript = (filePath: string) => {
           plugins: ['typescript', 'jsx'],
         });
     
-        const imports: any[] = [];
-        const exports: any[] = [];
+        const imports = [];
+        const exports = [];
     
         traverse(ast, {
-          ImportDeclaration(path :any) {
+          ImportDeclaration(path) {
             const importData = {
               source: path.node.source.value,
-              specifiers: path.node.specifiers.map((spec :any) => ({
+              specifiers: path.node.specifiers.map((spec) => ({
                 imported: spec.imported ? spec.imported.name : 'default',
                 local: spec.local.name,
               })),
             };
             imports.push(importData);
           },
-          ExportNamedDeclaration(path :any) {
+          ExportNamedDeclaration(path) {
             if (path.node.declaration) {
               const declaration = path.node.declaration;
               if (declaration.declarations) {
-                declaration.declarations.forEach((decl: any) => {
+                declaration.declarations.forEach((decl) => {
                   exports.push({
                     name: decl.id.name,
                     file: filePath,
@@ -276,7 +264,7 @@ const parsingScript = (filePath: string) => {
                 });
               }
             } else if (path.node.specifiers) {
-              path.node.specifiers.forEach((spec: any) => {
+              path.node.specifiers.forEach((spec) => {
                 exports.push({
                   name: spec.exported.name,
                   file: filePath,
@@ -284,7 +272,7 @@ const parsingScript = (filePath: string) => {
               });
             }
           },
-          ExportDefaultDeclaration(path: any) {
+          ExportDefaultDeclaration(path) {
             exports.push({
               name: 'default',
               file: filePath,
@@ -312,7 +300,7 @@ const parsingScript = (filePath: string) => {
         // Ensure paths are updated for each file
     
         const filteredExports = finalExports.filter(
-          (file: FileObject) => file.name !== 'config'
+          (file) => file.name !== 'config'
         );
     
         for (const file of filteredExports) {
@@ -337,83 +325,4 @@ const parsingScript = (filePath: string) => {
     analyzeMiddleware(filePath);
 };
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
-
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "nextFlow" is now active!');
-
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-  const d3 = vscode.commands.registerCommand('nextFlow.start', async () => {
-
-    const panel = vscode.window.createWebviewPanel(
-      'nextFlow',
-      'NextFlow',
-      vscode.ViewColumn.One,
-      {
-        enableScripts: true,
-        retainContextWhenHidden: true
-      }
-    );
-
-    const scriptUri = panel.webview.asWebviewUri(
-      vscode.Uri.file(path.join(context.extensionPath, "dist", "webview.js"))
-    );
-
-    panel.webview.html = getWebviewContent(scriptUri);
-
-    panel.webview.onDidReceiveMessage(async (message) => {
-        switch (message.command) {
-          case 'pickFile':
-            const options = {
-              canSelectMany: false,
-              openLabel: 'Select Middleware',
-              filters: {
-                'TypeScript': ['ts']
-              }
-            };
-            console.log(message.text);
-            const fileUri = await vscode.window.showOpenDialog(options);
-            console.log('fileUri: ', fileUri);
-            if (fileUri && fileUri[0]) {
-              const filePath = fileUri[0].fsPath;
-              const flare = parsingScript(filePath);
-              console.log('filePath: ', filePath);
-              const baseDir = path.dirname(filePath);
-              const compName = path.parse(filePath).base;
-              panel.webview.postMessage({ command: 'filePicked', flare, filePath, baseDir, compName });
-            }
-            break;
-
-          case 'alert':
-            vscode.window.showErrorMessage(message.text);
-            break;
-        }
-
-      }
-    );
-  });
-
-	context.subscriptions.push(d3);
-}
-
-function getWebviewContent(uri: vscode.Uri) {
-  return `<!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Middleware Dendrogram</title>
-      </head>
-      <body>
-        <script src="${uri}"></script>
-      </body>
-      </html>`;
-}
-
-// This method is called when your extension is deactivated
-export function deactivate() {}
+export default parsingScript;
