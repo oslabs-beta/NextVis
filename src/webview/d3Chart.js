@@ -70,15 +70,15 @@ const createChart = (data) => {
           .attr("transform", d => `translate(${source.y0},${source.x0})`)
           .attr("fill-opacity", 0)
           .attr("stroke-opacity", 0)
-          .on('mouseover', function(d) {
-            let g = d3.select(this);
-            let info = g.append('text')
-              .classed('info', true)
-              .attr('x', 20)
-              .attr('y', 10)
-              .attr("stroke", 'white')
-              .text('TEST'); // parse from script --> matcher or conditional
-          })
+          // .on('mouseover', function(d) {
+          //   let g = d3.select(this);
+          //   let info = g.append('text')
+          //     .classed('info', true)
+          //     .attr('x', 20)
+          //     .attr('y', 10)
+          //     .attr("stroke", 'white')
+          //     .text('TEST'); // parse from script --> matcher or conditional
+          // })
           .on('mouseout', function(){
             d3.select(this).select('text.info').remove();
           })
@@ -174,6 +174,22 @@ const createChart = (data) => {
   
     return svg.node();
 };
+// const flare = {
+//     name: "app",
+//     children: [
+//         {
+//             name: "/home",
+//             children: [{ name: "/about",
+//               children:[{ name: ":path*", children: [{name: ":/a"}, {name: ":/b"}, {name: ":/c"}] }]
+//               }, 
+//           { name: "/order", children: [{ name: '/order/:id', children: [{ name: ':item'}]}, { name: ':item' }]}]
+//           },
+//           { name: "/dashboard",
+//             children:[{ name: "/dashboard/user", children: [{name: "/dashboard/user/settings"}, {name: "/dashboard/user/config"}] }]
+//             }
+//         ],
+// };
+// const dendrogram = createChart(flare);
 
 const vscode = acquireVsCodeApi();
 
@@ -183,10 +199,10 @@ const title = document.createElement("h1");
 title.textContent = "Middleware Tree";
 
 
-const fileInput = document.createElement("input");
-fileInput.type = "file";
+const fileInput = document.createElement("div");
 fileInput.id = "middlewareFile";
-fileInput.innerText = "Select middleware file";
+// fileInput.type = "file";
+// fileInput.innerText = "Select middleware file";
 
 const loadButton = document.createElement("button");
 loadButton.type = "button";
@@ -207,40 +223,55 @@ container.appendChild(chartContainer);
 loadButton.addEventListener("click", () => {
   console.log('Load Middleware button clicked');
 
-  console.log('fileInput.value:', fileInput.files);
-
-  if (fileInput.value) {
-    const flare = {
-      name: "app",
-      children: [
-        {
-          name: "/home",
-          children: [{ name: "/about",
-            children:[{ name: ":path*", children: [{name: ":/a"}, {name: ":/b"}, {name: ":/c"}] }]
-            }, 
-        { name: "/order", children: [{ name: '/order/:id', children: [{ name: ':item'}]}, { name: ':item' }]}]
-        },
-        { name: "/dashboard",
-          children:[{ name: "/dashboard/user", children: [{name: "/dashboard/user/settings"}, {name: "/dashboard/user/config"}] }]
-          }
-      ],
-    };
-
-    const dendrogram = createChart(flare);
-    
-    const chart = document.getElementById("chart");
-    chart.appendChild(dendrogram);
-
-    title.textContent = `Middleware Tree for ${fileInput.value}`;
-
-  } else {
-    vscode.postMessage({
-      command: 'alert',
-      text: 'Please select a middleware file'
-    });
-  }
-
+  vscode.postMessage({ 
+    command: 'pickFile',
+    text: 'Picking file...'
+  });
+  
 });
 
+window.addEventListener("message", event => {
+  const message = event.data; // The JSON data our extension sent
+  
+  switch (message.command) {
+    case 'filePicked':
+      document.getElementById("middlewareFile").textContent = `Selected file: ${message.filePath}`;
+      if (message.flare) {
+        const chart = document.getElementById("chart");
+        chart.innerHTML = '';
+        
+        const dendrogram = createChart(message.flare);
+        console.log('message.flare: ', message.flare);
 
+        chart.appendChild(dendrogram);
+        title.textContent = `Middleware Tree for ${message.compName}`;
+        
+        
+      } else {
+        vscode.postMessage({
+          command: 'alert',
+          text: 'Please select a middleware file'
+        });
+      }
+  }
+});
 
+// {
+//   "name": "mainMiddleware.ts",
+//   "children": [{
+//       "name": "middleware"
+//   }, {
+//       "name": "helloWorld"
+//   }, {
+//       "name": "authMiddleware",
+//       "children": [{
+//           "name": "/protected"
+//       }, {
+//           "name": "/login"
+//       }]
+//   }, {
+//       "name": "localeMiddleware"
+//   }, {
+//       "name": "customHeadersMiddleware"
+//   }]
+// }
