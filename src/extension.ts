@@ -16,14 +16,14 @@ interface FileObject {
   matcher: Set<string>;
 }
 
-const parsingScript = (filePath: string) => {
+const parsingScript = async (filePath: string): Promise<any> => {
     const getLastTwoSegments = (filePath: string) => {
       const parts = filePath.split('/');
       // Get the last two parts
       return parts.slice(-2).join('/');
     };
     
-    const jsonCreator = (arrayOfFinalExports: FileObject[], finalObject: any = {}) => {
+    const finalObjectCreator = (arrayOfFinalExports: FileObject[], finalObject: any = {}): any => {
       // given the array, iterate through each object, this will be a new node everytime\
       arrayOfFinalExports.forEach(object  => {
         //  objects will have this format ex:  {
@@ -33,8 +33,9 @@ const parsingScript = (filePath: string) => {
           //   matcher: Set(2) { '/protected/', '/login' }
           // },
         // lets cut the file path and include only the last two /s
-        let cutPath = getLastTwoSegments(object.file);
-        // console.log(cutPath);
+        // let cutPath = getLastTwoSegments(object.file);
+        let cutPath = path.parse(object.file).base;
+        // console.log('cutPath: ', cutPath);
         // and then store the path into the final object under the key 'name' and add a children array to it
         if(!finalObject.name) {
           finalObject.name = cutPath;
@@ -50,22 +51,31 @@ const parsingScript = (filePath: string) => {
         if (object.path.size !== 0) {
           const child = finalObject.children.find((child: any) => child.name === object.name);
           if (child) {
-            child.children = [...object.path];
+            object.path.forEach((path)=>{
+              child.children.push({name: path});
+            });
             // console.log('child.children :>> ', child.children);
           }
         }
         // console.log('finalObject :>> ', finalObject);
         // we'll add the matcher as a seperate key that can be ignored for now
-        if (object.matcher.size !== 0) {
-          const child = finalObject.children.find((child: any) => child.name === object.name);
-          if (child) {
-            child.matcher = [...object.matcher];
-            // console.log('child.matcher :>> ', child.matcher);
+        // if (object.matcher.size !== 0) {
+        //   const child = finalObject.children.find((child: any) => child.name === object.name);
+        //   if (child) {
+        //     child.matcher = [...object.matcher];
+        //     // console.log('child.matcher :>> ', child.matcher);
+        //   }
+        // }
+        const finalChildrenArray = finalObject.children.find((child: any) => child.name === object.name);
+
+          if (finalChildrenArray.children.length === 0) {
+            delete finalChildrenArray.children;
           }
-        }
+        
+        
       });
-      console.log('finalObject :>> ', finalObject);
-      return JSON.stringify(finalObject);
+      // console.log('finalObject :>> ', finalObject);
+      return finalObject;
     };
     
     const pairMatcherWithFile = async (fileObject: FileObject): Promise<void> => {
@@ -168,7 +178,7 @@ const parsingScript = (filePath: string) => {
             if (matches) {
               matches.forEach((match) => {
                 fileObject.path.add(match);
-                console.log('fileObject :>> ', fileObject);
+                // console.log('fileObject :>> ', fileObject);
               });
             }
     
@@ -177,7 +187,7 @@ const parsingScript = (filePath: string) => {
         });
     
         rl.on('close', () => {
-          console.log('Final fileObject paths:', Array.from(fileObject.path));
+          // console.log('Final fileObject paths:', Array.from(fileObject.path));
           resolve(); // Resolve the promise after processing is done
         });
     
@@ -187,7 +197,7 @@ const parsingScript = (filePath: string) => {
       });
     };
     
-    const analyzeMiddleware = async (filePath: string, finalExports: FileObject[] = []) => {
+    const analyzeMiddleware = async (filePath: string, finalExports: FileObject[] = []): Promise<any> => {
       try {
         const code = fs.readFileSync(filePath, 'utf8');
         const ast = parser.parse(code, {
@@ -243,7 +253,7 @@ const parsingScript = (filePath: string) => {
         });
     
         finalExports.push(...exports);
-        console.log('finalExports:', finalExports);
+        // console.log('finalExports:', finalExports);
     
         // Recursively analyze imports
         for (const importItem of imports) {
@@ -255,7 +265,7 @@ const parsingScript = (filePath: string) => {
                 ''
               )}.ts`
             );
-            console.log('absolutePath:', absolutePath);
+            // console.log('absolutePath:', absolutePath);
     
             await analyzeMiddleware(absolutePath, finalExports); // Await recursive call
           }
@@ -267,17 +277,17 @@ const parsingScript = (filePath: string) => {
           (file: FileObject) => file.name !== 'config'
         );
 
-        console.log('filteredExports before pair functions :>> ', filteredExports);
+        // console.log('filteredExports before pair functions :>> ', filteredExports);
     
         for (const file of filteredExports) {
           await pairPathWithMiddleware(file); // Await pairPathWithMiddleware for each file
-          console.log('filteredExports after pairing with middleware:>> ', filteredExports);
+          // console.log('filteredExports after pairing with middleware:>> ', filteredExports);
           await pairMatcherWithFile(file);
-          console.log('filteredExports inside pairing with matcher :>> ', filteredExports);
+          // console.log('filteredExports inside pairing with matcher :>> ', filteredExports);
         }
         
-        console.log('filteredExports after pair functions :>> ', filteredExports);
-        jsonCreator(filteredExports);
+        // console.log('filteredExports after pair functions :>> ', filteredExports);
+        return filteredExports;
       } catch (error) {
         console.log(error);
       }
@@ -290,7 +300,8 @@ const parsingScript = (filePath: string) => {
     //   __dirname,
     //   '../large-testapp/src/app/middlewares/mainMiddleware.ts'
     // );
-    analyzeMiddleware(filePath);
+    const filteredExports = await analyzeMiddleware(filePath);
+    return finalObjectCreator(filteredExports);
 };
 
 // This method is called when your extension is activated
@@ -332,18 +343,58 @@ export function activate(context: vscode.ExtensionContext) {
                 'TypeScript': ['ts']
               }
             };
-            console.log(message.text);
+            // console.log(message.text);
             const fileUri = await vscode.window.showOpenDialog(options);
-            console.log('fileUri: ', fileUri);
+            // console.log('fileUri: ', fileUri);
             if (fileUri && fileUri[0]) {
               const filePath = fileUri[0].fsPath;
-              const flare = parsingScript(filePath);
-              console.log('flare in extension.ts: ', flare);
-              console.log('filePath: ', filePath);
-              const baseDir = path.dirname(filePath);
-              console.log('baseDir: ', baseDir);
-              const compName = path.parse(filePath).base;
-              panel.webview.postMessage({ command: 'filePicked', flare, filePath, baseDir, compName });
+              // console.log('filePath in extension.ts: ', filePath);
+              try {
+                const flare = await parsingScript(filePath);
+              //   const flare = {
+              //     name: "mainMiddleware.ts",
+              //     children: [{
+              //         name: "middleware"
+              //     }, {
+              //         name: "helloWorld"
+              //     }, {
+              //         name: "authMiddleware",
+              //         children: [{
+              //             name: "/protected"
+              //         }, {
+              //             name: "/login"
+              //         }]
+              //     }, {
+              //         name: "localeMiddleware"
+              //     }, {
+              //         name: "customHeadersMiddleware"
+              //     }]
+              // };
+              // const flare = {"name":"mainMiddleware.ts","children":[{"name":"middleware"},{"name":"helloWorld"},{"name":"authMiddleware","children":[{"name":"/protected"},{"name":"/login"}]},{"name":"localeMiddleware"},{"name":"customHeadersMiddleware"}]}
+            
+                // const flare = {
+                //   name: "app",
+                //   children: [
+                //     {
+                //       name: "/home",
+                //       children: [{ name: "/about",
+                //         children:[{ name: ":path*", children: [{name: ":/a"}, {name: ":/b"}, {name: ":/c"}] }]
+                //         }, 
+                //     { name: "/order", children: [{ name: '/order/:id', children: [{ name: ':item'}]}, { name: ':item' }]}]
+                //     },
+                //     { name: "/dashboard",
+                //       children:[{ name: "/dashboard/user", children: [{name: "/dashboard/user/settings"}, {name: "/dashboard/user/config"}] }]
+                //       }
+                //   ],
+                // };
+                console.log('flare in extension.ts: ', flare);
+                const baseDir = path.dirname(filePath);
+                // console.log('baseDir: ', baseDir);
+                const compName = path.parse(filePath).base;
+                panel.webview.postMessage({ command: 'filePicked', flare, filePath, baseDir, compName });
+              } catch (error) {
+                console.log('Error: ', error);
+              }
             }
             break;
 

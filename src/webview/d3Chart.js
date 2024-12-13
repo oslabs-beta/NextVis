@@ -70,15 +70,15 @@ const createChart = (data) => {
           .attr("transform", d => `translate(${source.y0},${source.x0})`)
           .attr("fill-opacity", 0)
           .attr("stroke-opacity", 0)
-          .on('mouseover', function(d) {
-            let g = d3.select(this);
-            let info = g.append('text')
-              .classed('info', true)
-              .attr('x', 20)
-              .attr('y', 10)
-              .attr("stroke", 'white')
-              .text('TEST'); // parse from script --> matcher or conditional
-          })
+          // .on('mouseover', function(d) {
+          //   let g = d3.select(this);
+          //   let info = g.append('text')
+          //     .classed('info', true)
+          //     .attr('x', 20)
+          //     .attr('y', 10)
+          //     .attr("stroke", 'white')
+          //     .text('TEST'); // parse from script --> matcher or conditional
+          // })
           .on('mouseout', function(){
             d3.select(this).select('text.info').remove();
           })
@@ -232,16 +232,18 @@ loadButton.addEventListener("click", () => {
 
 window.addEventListener("message", event => {
   const message = event.data; // The JSON data our extension sent
-
+  
   switch (message.command) {
     case 'filePicked':
       document.getElementById("middlewareFile").textContent = `Selected file: ${message.filePath}`;
-      if (fileInput.textContent) {
-        // const dendrogram = createChart(message.flare);
-        console.log('message.flare: ', message.flare);
-        // const chart = document.getElementById("chart");
-        // chart.appendChild(dendrogram);
+      if (message.flare) {
+        const chart = document.getElementById("chart");
+        chart.innerHTML = '';
         
+        const dendrogram = createChart(message.flare);
+        console.log('message.flare: ', message.flare);
+
+        chart.appendChild(dendrogram);
         title.textContent = `Middleware Tree for ${message.compName}`;
         
         
@@ -254,7 +256,22 @@ window.addEventListener("message", event => {
   }
 });
 
-
-
-
-      
+// {
+//   "name": "mainMiddleware.ts",
+//   "children": [{
+//       "name": "middleware"
+//   }, {
+//       "name": "helloWorld"
+//   }, {
+//       "name": "authMiddleware",
+//       "children": [{
+//           "name": "/protected"
+//       }, {
+//           "name": "/login"
+//       }]
+//   }, {
+//       "name": "localeMiddleware"
+//   }, {
+//       "name": "customHeadersMiddleware"
+//   }]
+// }
