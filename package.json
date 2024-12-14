@@ -4,7 +4,7 @@
   "description": "next.js middleware visualizer",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.95.0"
+    "vscode": "^1.92.2"
   },
   "categories": [
     "Other"

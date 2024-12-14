@@ -70,15 +70,15 @@ const createChart = (data) => {
           .attr("transform", d => `translate(${source.y0},${source.x0})`)
           .attr("fill-opacity", 0)
           .attr("stroke-opacity", 0)
-          // .on('mouseover', function(d) {
-          //   let g = d3.select(this);
-          //   let info = g.append('text')
-          //     .classed('info', true)
-          //     .attr('x', 20)
-          //     .attr('y', 10)
-          //     .attr("stroke", 'white')
-          //     .text('TEST'); // parse from script --> matcher or conditional
-          // })
+          .on('mouseover', function(d) {
+            let g = d3.select(this);
+            let info = g.append('text')
+              .classed('info', true)
+              .attr('x', 20)
+              .attr('y', 10)
+              .attr("stroke", 'white')
+              .text('TEST'); // parse from script --> matcher or conditional
+          })
           .on('mouseout', function(){
             d3.select(this).select('text.info').remove();
           })
@@ -207,7 +207,10 @@ fileInput.id = "middlewareFile";
 const loadButton = document.createElement("button");
 loadButton.type = "button";
 loadButton.id = "loadMiddleware";
-loadButton.textContent = "Load middleware tree";
+loadButton.textContent = "Load Middleware Tree";
+loadButton.style.margin = '10px 0px 0px 0px'; // spacing
+loadButton.style.borderRadius = '10px'; // border radius
+
 
 const fileContainer = document.createElement("div");
 fileContainer.appendChild(fileInput);
@@ -215,6 +218,7 @@ fileContainer.appendChild(loadButton);
 
 const chartContainer = document.createElement("div");
 chartContainer.id = "chart";
+chartContainer.style.padding = '20px 0px 0px'; // spacing
 
 container.appendChild(title);
 container.appendChild(fileContainer);
@@ -232,10 +236,20 @@ loadButton.addEventListener("click", () => {
 
 window.addEventListener("message", event => {
   const message = event.data; // The JSON data our extension sent
+
+  function getRandomColor() { // random color on title
+    const letters = '0123456789ABCDEF';
+    let color = '#';
+    for (let i = 0; i < 6; i++) {
+      color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+  }
   
   switch (message.command) {
     case 'filePicked':
       document.getElementById("middlewareFile").textContent = `Selected file: ${message.filePath}`;
+      // document.getElementById("middlewareFile").style.color = getRandomColor();
       if (message.flare) {
         const chart = document.getElementById("chart");
         chart.innerHTML = '';
@@ -245,7 +259,7 @@ window.addEventListener("message", event => {
 
         chart.appendChild(dendrogram);
         title.textContent = `Middleware Tree for ${message.compName}`;
-        
+        title.style.color = getRandomColor(); // line 240
         
       } else {
         vscode.postMessage({

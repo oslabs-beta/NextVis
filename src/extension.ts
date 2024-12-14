@@ -421,7 +421,7 @@ function getWebviewContent(uri: vscode.Uri) {
       <body>
         <script src="${uri}"></script>
       </body>
-      </html>`;
+      </html>`
 }
 
 // This method is called when your extension is deactivated
