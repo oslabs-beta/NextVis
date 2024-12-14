@@ -1,29 +1,25 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-import * as vscode from 'vscode';
-import * as path from 'path';
-import * as fs from 'fs';
-import * as readline from 'readline';
-import * as parser from'@babel/parser';
-import traverse from '@babel/traverse';
-import t from '@babel/types';
-// import parsingScript from './webview/parsingScript';
+const fs = require('fs');
+const path = require('path');
+const readline = require('readline');
+const parser = require('@babel/parser');
+const traverse = require('@babel/traverse').default;
+const t = require('@babel/types');
 
 interface FileObject {
-  file: string;
-  name: string;
-  path: Set<string>;
-  matcher: Set<string>;
+  file: string,
+  name: string,
+  path: Set<string | null>,
+  matcher: Set<string | null>
 }
 
-const parsingScript = async (filePath: string): Promise<any> => {
+const parsingScript = (filePath: string) => {
     const getLastTwoSegments = (filePath: string) => {
       const parts = filePath.split('/');
       // Get the last two parts
       return parts.slice(-2).join('/');
     };
     
-    const finalObjectCreator = (arrayOfFinalExports: FileObject[], finalObject: any = {}): any => {
+    const jsonCreator = (arrayOfFinalExports: FileObject[], finalObject: any = {}) => {
       // given the array, iterate through each object, this will be a new node everytime\
       arrayOfFinalExports.forEach(object  => {
         //  objects will have this format ex:  {
@@ -33,9 +29,8 @@ const parsingScript = async (filePath: string): Promise<any> => {
           //   matcher: Set(2) { '/protected/', '/login' }
           // },
         // lets cut the file path and include only the last two /s
-        // let cutPath = getLastTwoSegments(object.file);
-        let cutPath = path.parse(object.file).base;
-        // console.log('cutPath: ', cutPath);
+        let cutPath = getLastTwoSegments(object.file);
+        // console.log(cutPath);
         // and then store the path into the final object under the key 'name' and add a children array to it
         if(!finalObject.name) {
           finalObject.name = cutPath;
@@ -51,34 +46,25 @@ const parsingScript = async (filePath: string): Promise<any> => {
         if (object.path.size !== 0) {
           const child = finalObject.children.find((child: any) => child.name === object.name);
           if (child) {
-            object.path.forEach((path)=>{
-              child.children.push({name: path});
-            });
+            child.children = [...object.path];
             // console.log('child.children :>> ', child.children);
           }
         }
         // console.log('finalObject :>> ', finalObject);
         // we'll add the matcher as a seperate key that can be ignored for now
-        // if (object.matcher.size !== 0) {
-        //   const child = finalObject.children.find((child: any) => child.name === object.name);
-        //   if (child) {
-        //     child.matcher = [...object.matcher];
-        //     // console.log('child.matcher :>> ', child.matcher);
-        //   }
-        // }
-        const finalChildrenArray = finalObject.children.find((child: any) => child.name === object.name);
-
-          if (finalChildrenArray.children.length === 0) {
-            delete finalChildrenArray.children;
+        if (object.matcher.size !== 0) {
+          const child = finalObject.children.find((child: any) => child.name === object.name);
+          if (child) {
+            child.matcher = [...object.matcher];
+            // console.log('child.matcher :>> ', child.matcher);
           }
-        
-        
+        }
       });
-      // console.log('finalObject :>> ', finalObject);
-      return finalObject;
+      console.log('finalObject :>> ', finalObject);
+      return JSON.stringify(finalObject);
     };
     
-    const pairMatcherWithFile = async (fileObject: FileObject): Promise<void> => {
+    const pairMatcherWithFile = async (fileObject: {file: string, name: string, path: Set<string | void>, matcher: Set<string | null> }) =>{
       try {
       if (!fileObject.matcher) {
         fileObject.matcher = new Set();
@@ -119,7 +105,7 @@ const parsingScript = async (filePath: string): Promise<any> => {
       }
     }
     
-    const pairPathWithMiddleware = (fileObject: FileObject): Promise<void> => {
+    const pairPathWithMiddleware = (fileObject: FileObject) => {
       return new Promise((resolve, reject) => {
         if (!fileObject.path) {
           fileObject.path = new Set();
@@ -178,7 +164,7 @@ const parsingScript = async (filePath: string): Promise<any> => {
             if (matches) {
               matches.forEach((match) => {
                 fileObject.path.add(match);
-                // console.log('fileObject :>> ', fileObject);
+                console.log('fileObject :>> ', fileObject);
               });
             }
     
@@ -187,8 +173,8 @@ const parsingScript = async (filePath: string): Promise<any> => {
         });
     
         rl.on('close', () => {
-          // console.log('Final fileObject paths:', Array.from(fileObject.path));
-          resolve(); // Resolve the promise after processing is done
+          console.log('Final fileObject paths:', Array.from(fileObject.path));
+          Promise.resolve(); // Resolve the promise after processing is done
         });
     
         rl.on('error', (error: Error) => {
@@ -197,7 +183,57 @@ const parsingScript = async (filePath: string): Promise<any> => {
       });
     };
     
-    const analyzeMiddleware = async (filePath: string, finalExports: FileObject[] = []): Promise<any> => {
+    // const getPathNames = (filePath) => {
+    //   const innerFileText = fs.readFileSync(filePath, 'utf8');
+    
+    //   // Remove single-line comments and multi-line comments
+    //   const noCommentsText = innerFileText
+    //     .replace(/\/\/.*$/gm, '') // Remove single-line comments
+    //     .replace(/\/\*[\s\S]*?\*\//g, ''); // Remove multi-line comments
+    
+    //   // Split the content into lines
+    //   const lines = noCommentsText.split('\n');
+    
+    //   // Filter out lines that start with 'import' or 'require' (for imports)
+    //   const filteredLines = lines.filter(line => !line.trim().startsWith('import') && !line.trim().startsWith('require'));
+    
+    //   // Define a regex to match paths starting with '/' but exclude those with 'import' or 'require'
+    //   const pathRegex = /(?<!import\s+['"]|require\(['"])\/[a-zA-Z0-9-_\/]+/g;
+    
+    //   // Create a Set to store unique paths
+    //   const uniquePaths = new Set();
+    
+    //   // Iterate through each line and find matches
+    //   filteredLines.forEach(line => {
+    //     const pathMatches = line.match(pathRegex);
+    
+    //     if (pathMatches) {
+    //       pathMatches.forEach(path => {
+    //         uniquePaths.add(path); // Store path directly in the Set
+    //       });
+    //     }
+    //   });
+    
+    //   // Return the Set as an array
+    //   return Array.from(uniquePaths);
+    // };
+    
+    // const analyzeFilePaths = (finalExports) => {
+    //   const checkedPaths = new Set();
+    //   finalExports.forEach((file) => {
+    //     if (file.name !== 'config') {
+    //       checkedPaths.add(file);
+    //     }
+    //   });
+    //   checkedPaths.forEach((path) => {
+    //     // go inside file, create path array for it and if its name key is config, delete it
+    //     // console.log('path being used :>> ', path);
+    //     pairPathWithMiddleware(path);
+    //     //  console.log('path :>> ', path);
+    //   });
+    // };
+    
+    const analyzeMiddleware = async (filePath: string, finalExports: any = []) => {
       try {
         const code = fs.readFileSync(filePath, 'utf8');
         const ast = parser.parse(code, {
@@ -253,19 +289,17 @@ const parsingScript = async (filePath: string): Promise<any> => {
         });
     
         finalExports.push(...exports);
-        // console.log('finalExports:', finalExports);
     
         // Recursively analyze imports
         for (const importItem of imports) {
           if (importItem.source.includes('.')) {
             const absolutePath = path.join(
-              path.dirname(filePath),
-              `${importItem.source.replace(
+              __dirname,
+              `../large-testapp/src/app/middlewares/${importItem.source.replace(
                 './',
                 ''
               )}.ts`
             );
-            // console.log('absolutePath:', absolutePath);
     
             await analyzeMiddleware(absolutePath, finalExports); // Await recursive call
           }
@@ -276,18 +310,14 @@ const parsingScript = async (filePath: string): Promise<any> => {
         const filteredExports = finalExports.filter(
           (file: FileObject) => file.name !== 'config'
         );
-
-        // console.log('filteredExports before pair functions :>> ', filteredExports);
     
         for (const file of filteredExports) {
           await pairPathWithMiddleware(file); // Await pairPathWithMiddleware for each file
-          // console.log('filteredExports after pairing with middleware:>> ', filteredExports);
           await pairMatcherWithFile(file);
-          // console.log('filteredExports inside pairing with matcher :>> ', filteredExports);
         }
-        
-        // console.log('filteredExports after pair functions :>> ', filteredExports);
-        return filteredExports;
+    
+        console.log('finalExports :>> ', filteredExports);
+        jsonCreator(filteredExports);
       } catch (error) {
         console.log(error);
       }
@@ -300,129 +330,7 @@ const parsingScript = async (filePath: string): Promise<any> => {
     //   __dirname,
     //   '../large-testapp/src/app/middlewares/mainMiddleware.ts'
     // );
-    const filteredExports = await analyzeMiddleware(filePath);
-    return finalObjectCreator(filteredExports);
+    analyzeMiddleware(filePath);
 };
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
-
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "nextFlow" is now active!');
-
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-  const d3 = vscode.commands.registerCommand('nextFlow.start', async () => {
-
-    const panel = vscode.window.createWebviewPanel(
-      'nextFlow',
-      'NextFlow',
-      vscode.ViewColumn.One,
-      {
-        enableScripts: true,
-        retainContextWhenHidden: true
-      }
-    );
-
-    const scriptUri = panel.webview.asWebviewUri(
-      vscode.Uri.file(path.join(context.extensionPath, "dist", "webview.js"))
-    );
-
-    panel.webview.html = getWebviewContent(scriptUri);
-
-    panel.webview.onDidReceiveMessage(async (message) => {
-        switch (message.command) {
-          case 'pickFile':
-            const options = {
-              canSelectMany: false,
-              openLabel: 'Select Middleware',
-              filters: {
-                'TypeScript': ['ts']
-              }
-            };
-            // console.log(message.text);
-            const fileUri = await vscode.window.showOpenDialog(options);
-            // console.log('fileUri: ', fileUri);
-            if (fileUri && fileUri[0]) {
-              const filePath = fileUri[0].fsPath;
-              // console.log('filePath in extension.ts: ', filePath);
-              try {
-                const flare = await parsingScript(filePath);
-              //   const flare = {
-              //     name: "mainMiddleware.ts",
-              //     children: [{
-              //         name: "middleware"
-              //     }, {
-              //         name: "helloWorld"
-              //     }, {
-              //         name: "authMiddleware",
-              //         children: [{
-              //             name: "/protected"
-              //         }, {
-              //             name: "/login"
-              //         }]
-              //     }, {
-              //         name: "localeMiddleware"
-              //     }, {
-              //         name: "customHeadersMiddleware"
-              //     }]
-              // };
-              // const flare = {"name":"mainMiddleware.ts","children":[{"name":"middleware"},{"name":"helloWorld"},{"name":"authMiddleware","children":[{"name":"/protected"},{"name":"/login"}]},{"name":"localeMiddleware"},{"name":"customHeadersMiddleware"}]}
-            
-                // const flare = {
-                //   name: "app",
-                //   children: [
-                //     {
-                //       name: "/home",
-                //       children: [{ name: "/about",
-                //         children:[{ name: ":path*", children: [{name: ":/a"}, {name: ":/b"}, {name: ":/c"}] }]
-                //         }, 
-                //     { name: "/order", children: [{ name: '/order/:id', children: [{ name: ':item'}]}, { name: ':item' }]}]
-                //     },
-                //     { name: "/dashboard",
-                //       children:[{ name: "/dashboard/user", children: [{name: "/dashboard/user/settings"}, {name: "/dashboard/user/config"}] }]
-                //       }
-                //   ],
-                // };
-                console.log('flare in extension.ts: ', flare);
-                const baseDir = path.dirname(filePath);
-                // console.log('baseDir: ', baseDir);
-                const compName = path.parse(filePath).base;
-                panel.webview.postMessage({ command: 'filePicked', flare, filePath, baseDir, compName });
-              } catch (error) {
-                console.log('Error: ', error);
-              }
-            }
-            break;
-
-          case 'alert':
-            vscode.window.showErrorMessage(message.text);
-            break;
-        }
-
-      }
-    );
-  });
-
-	context.subscriptions.push(d3);
-}
-
-function getWebviewContent(uri: vscode.Uri) {
-  return `<!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Middleware Dendrogram</title>
-      </head>
-      <body>
-      <script src="${uri}"></script>
-      </body>
-      </html>`
-}
-
-// This method is called when your extension is deactivated
-export function deactivate() {}
+export default parsingScript;
