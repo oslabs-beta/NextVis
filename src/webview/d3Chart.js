@@ -88,21 +88,21 @@ const createChart = (data) => {
           });
   
       // styles the node as a circle
-      // nodeEnter.append("circle")
-      //     .attr("r", 10)
-      //     .attr("width", 40)
-      //     .attr("height", 20)
-      //     .attr("fill", d => d._children ? "#555" : "#999")
-      //     .attr("stroke-width", 10);
+      nodeEnter.append("circle")
+          .attr("r", 10)
+          .attr("width", 40)
+          .attr("height", 20)
+          .attr("fill", d => d._children ? "#982933" : "#4B8F8C")
+          .attr("stroke-width", 10);
 
       // styles the node as a rectangle
-      nodeEnter.append("rect")
-        .attr("x", -20)
-        .attr("y", -10)
-        .attr("width", 40)
-        .attr("height", 20)
-        .attr("fill", d => d._children ? "red" : "blue")
-        .attr("stroke-width", 10);
+      // nodeEnter.append("rect")
+      //   .attr("x", -20)
+      //   .attr("y", -10)
+      //   .attr("width", 40)
+      //   .attr("height", 20)
+      //   .attr("fill", d => d._children ? "red" : "blue")
+      //   .attr("stroke-width", 10);
       
       // styles the text taken from data
       nodeEnter.append("text")
@@ -174,22 +174,6 @@ const createChart = (data) => {
   
     return svg.node();
 };
-// const flare = {
-//     name: "app",
-//     children: [
-//         {
-//             name: "/home",
-//             children: [{ name: "/about",
-//               children:[{ name: ":path*", children: [{name: ":/a"}, {name: ":/b"}, {name: ":/c"}] }]
-//               }, 
-//           { name: "/order", children: [{ name: '/order/:id', children: [{ name: ':item'}]}, { name: ':item' }]}]
-//           },
-//           { name: "/dashboard",
-//             children:[{ name: "/dashboard/user", children: [{name: "/dashboard/user/settings"}, {name: "/dashboard/user/config"}] }]
-//             }
-//         ],
-// };
-// const dendrogram = createChart(flare);
 
 const vscode = acquireVsCodeApi();
 
@@ -208,6 +192,7 @@ const loadButton = document.createElement("button");
 loadButton.type = "button";
 loadButton.id = "loadMiddleware";
 loadButton.textContent = "Load Middleware Tree";
+// loadButton.style.padding = '5px';
 loadButton.style.margin = '10px 0px 0px 0px'; // spacing
 loadButton.style.borderRadius = '10px'; // border radius
 
@@ -259,7 +244,7 @@ window.addEventListener("message", event => {
 
         chart.appendChild(dendrogram);
         title.textContent = `Middleware Tree for ${message.compName}`;
-        title.style.color = getRandomColor(); // line 240
+        // title.style.color = getRandomColor(); // line 240
         
       } else {
         vscode.postMessage({
@@ -269,23 +254,3 @@ window.addEventListener("message", event => {
       }
   }
 });
-
-// {
-//   "name": "mainMiddleware.ts",
-//   "children": [{
-//       "name": "middleware"
-//   }, {
-//       "name": "helloWorld"
-//   }, {
-//       "name": "authMiddleware",
-//       "children": [{
-//           "name": "/protected"
-//       }, {
-//           "name": "/login"
-//       }]
-//   }, {
-//       "name": "localeMiddleware"
-//   }, {
-//       "name": "customHeadersMiddleware"
-//   }]
-// }
