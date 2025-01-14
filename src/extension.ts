@@ -327,6 +327,26 @@ export function activate(context: vscode.ExtensionContext) {
       }
     );
 
+    const metricsPanel = vscode.window.createWebviewPanel(
+      'metrics',
+      'NextFlow Metrics',
+      vscode.ViewColumn.Two,
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true
+      }
+    );
+
+    metricsPanel.webview.html = `
+      <!DOCTYPE html>
+      <html>
+      <head><title>Metrics</title></head>
+      <body>
+        <h1>NextFlow Metrics</h1>
+      </body>
+      </html>
+    `;
+
     const scriptUri = panel.webview.asWebviewUri(
       vscode.Uri.file(path.join(context.extensionPath, "dist", "webview.js"))
     );
@@ -421,7 +441,7 @@ function getWebviewContent(uri: vscode.Uri) {
       <body>
         <script src="${uri}"></script>
       </body>
-      </html>`;
+      </html>`
 }
 
 // This method is called when your extension is deactivated
