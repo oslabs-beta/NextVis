@@ -60,7 +60,7 @@ const parsingScript = (filePath: string) => {
           }
         }
       });
-      console.log('finalObject :>> ', finalObject);
+      // console.log('finalObject :>> ', finalObject);
       return JSON.stringify(finalObject);
     };
     
@@ -164,7 +164,7 @@ const parsingScript = (filePath: string) => {
             if (matches) {
               matches.forEach((match) => {
                 fileObject.path.add(match);
-                console.log('fileObject :>> ', fileObject);
+
               });
             }
     
@@ -235,6 +235,7 @@ const parsingScript = (filePath: string) => {
     
     const analyzeMiddleware = async (filePath: string, finalExports: any = []) => {
       try {
+        const rootMiddlewareFilePath = filePath;
         const code = fs.readFileSync(filePath, 'utf8');
         const ast = parser.parse(code, {
           sourceType: 'module',
@@ -316,7 +317,7 @@ const parsingScript = (filePath: string) => {
           await pairMatcherWithFile(file);
         }
     
-        console.log('finalExports :>> ', filteredExports);
+        console.log('finalExports :>> in analyze', filteredExports);
         jsonCreator(filteredExports);
       } catch (error) {
         console.log(error);
