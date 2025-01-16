@@ -7,7 +7,12 @@ import * as readline from 'readline';
 import * as parser from '@babel/parser';
 import traverse from '@babel/traverse';
 import t from '@babel/types';
+// import * as os from 'os';
+import { cpuUsage } from 'node:process';
+
+
 // import parsingScript from './webview/parsingScript';
+
 
 interface FileObject {
   file: string;
@@ -380,6 +385,157 @@ export function activate(context: vscode.ExtensionContext) {
       }
     );
 
+    
+//     const used: any = process.memoryUsage();
+//     for (let key in used) {
+//     console.log(`Memory: ${key} ${Math.round(used[key] / 1024 / 1024 * 100) / 100} MB`);
+// }
+
+/*
+Memory: rss 522.06 MB
+Memory: heapTotal 447.3 MB
+Memory: heapUsed 291.71 MB
+Memory: external 0.13 MB
+*/
+
+
+//       // Inside your `activate` function or command registration
+// setInterval(() => {
+//   const totalMemory = os.totalmem(); // Total system memory
+//   const freeMemory = os.freemem();  // Free system memory
+//   const usedMemory = totalMemory - freeMemory; // Used memory
+//   const memoryUsage = (usedMemory / totalMemory) * 100;
+
+//   const cpus = os.cpus();
+//   const cpuUsage = cpus.map((cpu, index) => {
+//       const total = Object.values(cpu.times).reduce((acc, time) => acc + time, 0);
+//       const idle = cpu.times.idle;
+//       const usage = ((total - idle) / total) * 100;
+//       return { core: index, usage: usage.toFixed(2) };
+//   });
+
+//   metricsPanel.webview.postMessage({
+//       command: 'updateMetrics',
+//       memoryUsage: memoryUsage.toFixed(2),
+//       cpuUsage,
+//   });
+// }, 1000); // Send data every second  
+
+//     metricsPanel.webview.html = `
+// <!DOCTYPE html>
+// <html lang="en">
+// <head>
+//   <meta charset="UTF-8">
+//   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+//   <title>Metrics</title>
+//   <style>
+//     body {
+//       font-family: Arial, sans-serif;
+//       padding: 16px;
+//       color: var(--vscode-foreground);
+//       background-color: var(--vscode-editor-background);
+//     }
+//     .metrics-container {
+//       display: flex;
+//       flex-direction: column;
+//       gap: 12px;
+//     }
+//     .metric-section {
+//       background: var(--vscode-editor-background);
+//       border: 1px solid var(--vscode-panel-border);
+//       border-radius: 4px;
+//       padding: 12px;
+//       margin-bottom: 16px;
+//     }
+//     .metric-section h2 {
+//       margin: 0 0 12px 0;
+//       font-size: 1.2em;
+//       color: var(--vscode-foreground);
+//     }
+//     .metric {
+//       display: flex;
+//       justify-content: space-between;
+//       font-size: 14px;
+//       padding: 8px 0;
+//       border-bottom: 1px solid var(--vscode-panel-border);
+//     }
+//     .metric:last-child {
+//       border-bottom: none;
+//     }
+//     .value {
+//       font-family: monospace;
+//       color: var(--vscode-textLink-foreground);
+//     }
+//   </style>
+// </head>
+// <body>
+//   <div class="metrics-container">
+//     <h1>NextFlow Metrics</h1>
+    
+//     <div class="metric-section">
+//       <h2>CPU Usage</h2>
+//       <div class="metric">
+//         <span>User Time:</span>
+//         <span id="cpu-user" class="value">Loading...</span>
+//       </div>
+//       <div class="metric">
+//         <span>System Time:</span>
+//         <span id="cpu-system" class="value">Loading...</span>
+//       </div>
+//       <div class="metric">
+//         <span>Total CPU Time:</span>
+//         <span id="cpu-total" class="value">Loading...</span>
+//       </div>
+//     </div>
+
+//     <div class="metric-section">
+//       <h2>Memory Usage</h2>
+//       <div class="metric">
+//         <span>Heap Used:</span>
+//         <span id="memory-heap-used" class="value">Loading...</span>
+//       </div>
+//       <div class="metric">
+//         <span>Heap Total:</span>
+//         <span id="memory-heap-total" class="value">Loading...</span>
+//       </div>
+//       <div class="metric">
+//         <span>RSS:</span>
+//         <span id="memory-rss" class="value">Loading...</span>
+//       </div>
+//       <div class="metric">
+//         <span>External:</span>
+//         <span id="memory-external" class="value">Loading...</span>
+//       </div>
+//     </div>
+//   </div>
+
+//   <script>
+//     window.addEventListener('message', (event) => {
+//       const message = event.data;
+
+//       if (message.command === 'updateMetrics') {
+//         // Update CPU metrics
+//         if (message.metrics && message.metrics.cpu) {
+//           document.getElementById('cpu-user').textContent = message.metrics.cpu.user;
+//           document.getElementById('cpu-system').textContent = message.metrics.cpu.system;
+//           document.getElementById('cpu-total').textContent = message.metrics.cpu.total;
+//         }
+
+//         // Update Memory metrics
+//         if (message.metrics && message.metrics.memory) {
+//           document.getElementById('memory-heap-used').textContent = message.metrics.memory.heapUsed;
+//           document.getElementById('memory-heap-total').textContent = message.metrics.memory.heapTotal;
+//           document.getElementById('memory-rss').textContent = message.metrics.memory.rss;
+//           document.getElementById('memory-external').textContent = message.metrics.memory.external;
+//         }
+//       }
+//     });
+//   </script>
+// </body>
+// </html>
+// `;
+
+
     const scriptUri = panel.webview.asWebviewUri(
       vscode.Uri.file(path.join(context.extensionPath, 'dist', 'webview.js'))
     );
@@ -403,7 +559,49 @@ export function activate(context: vscode.ExtensionContext) {
             const filePath = fileUri[0].fsPath;
             // console.log('filePath in extension.ts: ', filePath);
             try {
+                // const startCpu = process.cpuUsage();
+                // const startMemory = process.memoryUsage();
+                // console.log("start", startCpu, startMemory)
+                
               const flare = await parsingScript(filePath);
+
+                // const endCpu = process.cpuUsage(startCpu);
+                // const endMemory = process.memoryUsage();
+                // console.log('Difference time from start to end', endCpu, endMemory);
+
+                // const cpuUsage = {
+                //   user: endCpu.user,
+                //   system: endCpu.system,
+                //   total: endCpu.user + endCpu.system
+                // };
+
+                // const memoryUsage = {
+                //   rss: endMemory.rss - startMemory.rss,
+                //   heapTotal: endMemory.heapTotal - startMemory.heapTotal,
+                //   heapUsed: endMemory.heapUsed - startMemory.heapUsed,
+                //   external: endMemory.external - startMemory.external
+                // };
+
+                // const metrics = {
+                //   cpu: {
+                //     user: `${(cpuUsage.user / 1000).toFixed(2)}ms`,
+                //     system: (cpuUsage.system / 1000).toFixed(2),
+                //     total: ((cpuUsage.user + cpuUsage.system) / 1000).toFixed(2)
+                //   },
+                //   memory: {
+                //     heapUsed: `${(memoryUsage.heapUsed / 1024 / 1024).toFixed(2)}MB`,
+                //     heapTotal: (memoryUsage.heapTotal / 1024 / 1024).toFixed(2),
+                //     rss: (memoryUsage.rss / 1024 / 1024).toFixed(2),
+                //     external: (memoryUsage.external / 1024 / 1024).toFixed(2)
+                //   }
+                // };
+
+                // metricsPanel.webview.postMessage({
+                //   command: 'updateMetrics',
+                //   metrics: metrics
+                // });
+
+                // console.log('Performance metrics:', metrics);
               //   const flare = {
               //     name: "mainMiddleware.ts",
               //     children: [{
