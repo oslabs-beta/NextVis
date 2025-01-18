@@ -10,9 +10,7 @@ import t from '@babel/types';
 // import * as os from 'os';
 import { cpuUsage } from 'node:process';
 
-
 // import parsingScript from './webview/parsingScript';
-
 
 interface FileObject {
   file: string;
@@ -22,18 +20,14 @@ interface FileObject {
 }
 
 const parsingScript = async (filePath: string): Promise<any> => {
-  const getLastTwoSegments = (filePath: string) => {
-    const parts = filePath.split('/');
-    // Get the last two parts
-    return parts.slice(-2).join('/');
-  };
-
+  
   const finalObjectCreator = (
     arrayOfFinalExports: FileObject[],
     finalObject: any = {}
   ): any => {
     // given the array, iterate through each object, this will be a new node everytime\
-    console.log('arrayOfFinalExports :>> ', arrayOfFinalExports);
+    const rootMiddlewareFilePath = arrayOfFinalExports[0].file;
+    let rootCutPath = path.parse(rootMiddlewareFilePath).base;
     arrayOfFinalExports.forEach((object) => {
       //  objects will have this format ex:  {
       //   name: 'middleware',
@@ -45,63 +39,110 @@ const parsingScript = async (filePath: string): Promise<any> => {
       // let cutPath = getLastTwoSegments(object.file);
       let cutPath = path.parse(object.file).base;
       console.log('cutPath: ', cutPath);
-      // and then store the path into the final object under the key 'name' and add a children array to it
-      console.log('finalObject in object creator:>> ', finalObject);
-      if (!finalObject.name) {
-        finalObject.name = cutPath;
+
+      // if finalObject is empty then the first iteration is the intial one and this is the root path
+      if (Object.keys(finalObject).length === 0 && cutPath === rootCutPath) {
+        finalObject.name = rootCutPath;
         finalObject.children = [];
-      }
-      console.log('finalObject before matcher :>> ', finalObject);
-      if (!finalObject.matcher) {
+        finalObject.type = 'file';
         finalObject.matcher = [...object.matcher];
       }
-      console.log('finalObject after matcher:>> ', finalObject);
-      // now lets look at the name key(aka the actual middleware function within the file) in our orignal object and add that to its children array.
-      console.log('finalObject before adding children:>> ', finalObject);
-      if (
-        !finalObject.children.some((child: any) => child.name === object.name)
-      ) {
-        finalObject.children.push({ name: object.name, children: [] });
-      }
-      console.log('finalObject after adding children:>> ', finalObject);
-      // we'll add that to the children array with the same name:ex, children:[];, format
-      // if the object has valid paths, we'll add that to the children array of the middle ware function, in this case middleware
-      if (object.path.size !== 0) {
-        const child = finalObject.children.find(
-          (child: any) => child.name === object.name
-        );
-        if (child) {
-          object.path.forEach((path) => {
-            child.children.push({ name: path });
+
+      // we now have { name: rootPath, children: [], type: 'file', matcher:[] }
+
+      //// need to have some form of check where it will not add another file inside of the children array if the current truncated file is equal to the rootCutPath (AKA the root file shouldnt be a child of itself)
+      if (cutPath !== rootCutPath) {
+        //this means the current file does not equal the root file, so it can be added to finalObject.children if it does not already contain an instance of this file
+        if (
+          !finalObject.children.some(
+            (childObject: any) => childObject.name === cutPath
+          )
+        ) {
+          // current file does not equal the root file and finalObject.children does not already contain an instance of this file
+          // now lets add to finalObject.children to our file name
+          finalObject.children.push({
+            name: cutPath,
+            children: [],
+            type: 'file',
+            matcher: [...object.matcher],
           });
-          console.log('child.children :>> ', child.children);
         }
-      }
-      // we'll add the matcher as a seperate key that can be ignored for now
-      if (object.matcher.size !== 0) {
-    
-        const child = finalObject.children.find(
-          (child: any) => child.name === JSON.stringify({ cutPath })
+        // now we need to select out current file
+        const selectedChildFileObject = finalObject.children.find(
+          (childObject: any) => childObject.name === cutPath
         );
-        console.log('child before match:>> ', child);
-        if (child) {
-          child.matcher = [...object.matcher];
-          console.log('child.matcher :>> ', child.matcher);
+        // need to check if this file has the current middleware file already in the children array (shouldnt but doesnt hurt to check)
+        if (
+          !selectedChildFileObject.children.some(
+            (childObject: any) => childObject.name === object.name
+          )
+        ) {
+          // now we need to add our middleware function
+          selectedChildFileObject.children.push({
+            name: object.name,
+            children: [],
+            type: 'function',
+          });
+        }
+        // now we need to select our current middle ware function
+        const selectedChildFunctionObject =
+          selectedChildFileObject.children.find(
+            (childObject: any) => childObject.name === object.name
+          );
+        // need to check if this function has the current paths already in the children array;
+        // since paths are unique to functions, simply check if the function's child array is empty?
+        if (selectedChildFunctionObject) {
+          object.path.forEach((path) => {
+            if (
+              !selectedChildFunctionObject.children.some(
+                (childObject: any) => childObject.name === path
+              )
+            ) {
+              selectedChildFunctionObject.children.push({
+                name: path,
+                type: 'path',
+              });
+            }
+          });
         }
       }
-      
-      const finalChildrenArray = finalObject.children.find(
-        (child: any) => child.name === object.name
-      );
-      // console.log('finalChildrenArray :>> ', finalChildrenArray);
-      if (
-        finalChildrenArray.children &&
-        finalChildrenArray.children.length === 0
-      ) {
-        delete finalChildrenArray.children;
+      // our current file = our root file, this means we will not be adding a file and can skip to the functions instea
+      if (cutPath === rootCutPath) {
+        // check if finalObject.children (AKA our current object) array contains our current middleware function already
+        if (
+          !finalObject.children.some(
+            (childObject: any) => childObject.name === object.name
+          )
+        ) {
+          // if not add the current middle ware function
+          finalObject.children.push({
+            name: object.name,
+            children: [],
+            type: 'function',
+          });
+        }
+        // select our current function
+        const selectedChildFunctionObject = finalObject.children.find(
+          (childObject: any) => childObject.name === object.name
+        );
+        // check if this functions children array is empty
+        if (selectedChildFunctionObject) {
+          object.path.forEach((path) => {
+            if (
+              !selectedChildFunctionObject.children.some(
+                (childObject: any) => childObject.name === path
+              )
+            ) {
+              selectedChildFunctionObject.children.push({
+                name: path,
+                type: 'path',
+              });
+            }
+          });
+        }
       }
     });
-    // console.log('finalObject :>> ', finalObject);
+    console.log('finalObject :>> ', finalObject);
     return finalObject;
   };
 
@@ -111,7 +152,7 @@ const parsingScript = async (filePath: string): Promise<any> => {
         fileObject.matcher = new Set();
       }
       // console.log('fileObject in matcher :>> ', fileObject);
-      const dynamicMatcherRegex = /\/[a-zA-Z0-9-_\/]+/g;
+      const dynamicMatcherRegex = /matcher:\s*\[\s*['"](.+?)['"]\s*\]/;
 
       const readStream = fs.createReadStream(fileObject.file);
       const rl = readline.createInterface({
@@ -130,8 +171,17 @@ const parsingScript = async (filePath: string): Promise<any> => {
           // If matches are found, add them to fileObject.matcher
           if (matches) {
             matches.forEach((match) => {
-              fileObject.matcher.add(match);
-              // console.log('Added to matcher:', match);
+              // Normalize the match
+              const normalizedMatch = match
+                .replace(/^matcher:\s*\[/, "") // Remove "matcher: [" prefix
+                .replace(/\]$/, "") // Remove the closing "]"
+                .replace(/^['"]|['"]$/g, "") // Remove leading/trailing quotes
+                .trim(); // Remove extra spaces
+          
+              // Add the normalized match to the matcher set
+              fileObject.matcher.add(`'${normalizedMatch}'`);
+          
+              console.log('Added to matcher:', `'${normalizedMatch}'`);
             });
           }
         }
@@ -145,7 +195,9 @@ const parsingScript = async (filePath: string): Promise<any> => {
     }
   };
 
-  const pairPathWithMiddleware = (fileObject: FileObject): Promise<void> => {
+  const pairPathWithMiddleware = async (
+    fileObject: FileObject
+  ): Promise<void> => {
     return new Promise((resolve, reject) => {
       if (!fileObject.path) {
         fileObject.path = new Set();
@@ -248,7 +300,6 @@ const parsingScript = async (filePath: string): Promise<any> => {
     finalExports: FileObject[] = []
   ): Promise<any> => {
     try {
-      const rootMiddlewareFilePath = filePath;
       const code = fs.readFileSync(filePath, 'utf8');
       const ast = parser.parse(code, {
         sourceType: 'module',
@@ -385,162 +436,13 @@ export function activate(context: vscode.ExtensionContext) {
       }
     );
 
-    
-//     const used: any = process.memoryUsage();
-//     for (let key in used) {
-//     console.log(`Memory: ${key} ${Math.round(used[key] / 1024 / 1024 * 100) / 100} MB`);
-// }
-
-/*
-Memory: rss 522.06 MB
-Memory: heapTotal 447.3 MB
-Memory: heapUsed 291.71 MB
-Memory: external 0.13 MB
-*/
-
-
-//       // Inside your `activate` function or command registration
-// setInterval(() => {
-//   const totalMemory = os.totalmem(); // Total system memory
-//   const freeMemory = os.freemem();  // Free system memory
-//   const usedMemory = totalMemory - freeMemory; // Used memory
-//   const memoryUsage = (usedMemory / totalMemory) * 100;
-
-//   const cpus = os.cpus();
-//   const cpuUsage = cpus.map((cpu, index) => {
-//       const total = Object.values(cpu.times).reduce((acc, time) => acc + time, 0);
-//       const idle = cpu.times.idle;
-//       const usage = ((total - idle) / total) * 100;
-//       return { core: index, usage: usage.toFixed(2) };
-//   });
-
-//   metricsPanel.webview.postMessage({
-//       command: 'updateMetrics',
-//       memoryUsage: memoryUsage.toFixed(2),
-//       cpuUsage,
-//   });
-// }, 1000); // Send data every second  
-
-//     metricsPanel.webview.html = `
-// <!DOCTYPE html>
-// <html lang="en">
-// <head>
-//   <meta charset="UTF-8">
-//   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-//   <title>Metrics</title>
-//   <style>
-//     body {
-//       font-family: Arial, sans-serif;
-//       padding: 16px;
-//       color: var(--vscode-foreground);
-//       background-color: var(--vscode-editor-background);
-//     }
-//     .metrics-container {
-//       display: flex;
-//       flex-direction: column;
-//       gap: 12px;
-//     }
-//     .metric-section {
-//       background: var(--vscode-editor-background);
-//       border: 1px solid var(--vscode-panel-border);
-//       border-radius: 4px;
-//       padding: 12px;
-//       margin-bottom: 16px;
-//     }
-//     .metric-section h2 {
-//       margin: 0 0 12px 0;
-//       font-size: 1.2em;
-//       color: var(--vscode-foreground);
-//     }
-//     .metric {
-//       display: flex;
-//       justify-content: space-between;
-//       font-size: 14px;
-//       padding: 8px 0;
-//       border-bottom: 1px solid var(--vscode-panel-border);
-//     }
-//     .metric:last-child {
-//       border-bottom: none;
-//     }
-//     .value {
-//       font-family: monospace;
-//       color: var(--vscode-textLink-foreground);
-//     }
-//   </style>
-// </head>
-// <body>
-//   <div class="metrics-container">
-//     <h1>NextFlow Metrics</h1>
-    
-//     <div class="metric-section">
-//       <h2>CPU Usage</h2>
-//       <div class="metric">
-//         <span>User Time:</span>
-//         <span id="cpu-user" class="value">Loading...</span>
-//       </div>
-//       <div class="metric">
-//         <span>System Time:</span>
-//         <span id="cpu-system" class="value">Loading...</span>
-//       </div>
-//       <div class="metric">
-//         <span>Total CPU Time:</span>
-//         <span id="cpu-total" class="value">Loading...</span>
-//       </div>
-//     </div>
-
-//     <div class="metric-section">
-//       <h2>Memory Usage</h2>
-//       <div class="metric">
-//         <span>Heap Used:</span>
-//         <span id="memory-heap-used" class="value">Loading...</span>
-//       </div>
-//       <div class="metric">
-//         <span>Heap Total:</span>
-//         <span id="memory-heap-total" class="value">Loading...</span>
-//       </div>
-//       <div class="metric">
-//         <span>RSS:</span>
-//         <span id="memory-rss" class="value">Loading...</span>
-//       </div>
-//       <div class="metric">
-//         <span>External:</span>
-//         <span id="memory-external" class="value">Loading...</span>
-//       </div>
-//     </div>
-//   </div>
-
-//   <script>
-//     window.addEventListener('message', (event) => {
-//       const message = event.data;
-
-//       if (message.command === 'updateMetrics') {
-//         // Update CPU metrics
-//         if (message.metrics && message.metrics.cpu) {
-//           document.getElementById('cpu-user').textContent = message.metrics.cpu.user;
-//           document.getElementById('cpu-system').textContent = message.metrics.cpu.system;
-//           document.getElementById('cpu-total').textContent = message.metrics.cpu.total;
-//         }
-
-//         // Update Memory metrics
-//         if (message.metrics && message.metrics.memory) {
-//           document.getElementById('memory-heap-used').textContent = message.metrics.memory.heapUsed;
-//           document.getElementById('memory-heap-total').textContent = message.metrics.memory.heapTotal;
-//           document.getElementById('memory-rss').textContent = message.metrics.memory.rss;
-//           document.getElementById('memory-external').textContent = message.metrics.memory.external;
-//         }
-//       }
-//     });
-//   </script>
-// </body>
-// </html>
-// `;
-
-
     const scriptUri = panel.webview.asWebviewUri(
       vscode.Uri.file(path.join(context.extensionPath, 'dist', 'webview.js'))
     );
 
     panel.webview.html = getWebviewContent(scriptUri);
+
+    let metricsData = {};
 
     panel.webview.onDidReceiveMessage(async (message) => {
       switch (message.command) {
@@ -559,49 +461,50 @@ Memory: external 0.13 MB
             const filePath = fileUri[0].fsPath;
             // console.log('filePath in extension.ts: ', filePath);
             try {
-                // const startCpu = process.cpuUsage();
-                // const startMemory = process.memoryUsage();
-                // console.log("start", startCpu, startMemory)
-                
+              const startCpu = process.cpuUsage();
+              const startMemory = process.memoryUsage();
+              console.log('start', startCpu, startMemory);
+
               const flare = await parsingScript(filePath);
 
-                // const endCpu = process.cpuUsage(startCpu);
-                // const endMemory = process.memoryUsage();
-                // console.log('Difference time from start to end', endCpu, endMemory);
+              const endCpu = process.cpuUsage(startCpu);
+              const endMemory = process.memoryUsage();
+              console.log(
+                'Difference time from start to end',
+                endCpu,
+                endMemory
+              );
 
-                // const cpuUsage = {
-                //   user: endCpu.user,
-                //   system: endCpu.system,
-                //   total: endCpu.user + endCpu.system
-                // };
+              const cpuUsage = {
+                user: endCpu.user,
+                system: endCpu.system,
+                total: endCpu.user + endCpu.system,
+              };
 
-                // const memoryUsage = {
-                //   rss: endMemory.rss - startMemory.rss,
-                //   heapTotal: endMemory.heapTotal - startMemory.heapTotal,
-                //   heapUsed: endMemory.heapUsed - startMemory.heapUsed,
-                //   external: endMemory.external - startMemory.external
-                // };
+              const memoryUsage = {
+                rss: endMemory.rss - startMemory.rss,
+                heapTotal: endMemory.heapTotal - startMemory.heapTotal,
+                heapUsed: endMemory.heapUsed - startMemory.heapUsed,
+                external: endMemory.external - startMemory.external,
+              };
 
-                // const metrics = {
-                //   cpu: {
-                //     user: `${(cpuUsage.user / 1000).toFixed(2)}ms`,
-                //     system: (cpuUsage.system / 1000).toFixed(2),
-                //     total: ((cpuUsage.user + cpuUsage.system) / 1000).toFixed(2)
-                //   },
-                //   memory: {
-                //     heapUsed: `${(memoryUsage.heapUsed / 1024 / 1024).toFixed(2)}MB`,
-                //     heapTotal: (memoryUsage.heapTotal / 1024 / 1024).toFixed(2),
-                //     rss: (memoryUsage.rss / 1024 / 1024).toFixed(2),
-                //     external: (memoryUsage.external / 1024 / 1024).toFixed(2)
-                //   }
-                // };
+              metricsData = {
+                cpu: {
+                  user: `${(cpuUsage.user / 1000).toFixed(2)}ms`,
+                  system: (cpuUsage.system / 1000).toFixed(2),
+                  total: ((cpuUsage.user + cpuUsage.system) / 1000).toFixed(2),
+                },
+                memory: {
+                  heapUsed: `${(memoryUsage.heapUsed / 1024 / 1024).toFixed(
+                    2
+                  )}MB`,
+                  heapTotal: (memoryUsage.heapTotal / 1024 / 1024).toFixed(2),
+                  rss: (memoryUsage.rss / 1024 / 1024).toFixed(2),
+                  external: (memoryUsage.external / 1024 / 1024).toFixed(2),
+                },
+              };
 
-                // metricsPanel.webview.postMessage({
-                //   command: 'updateMetrics',
-                //   metrics: metrics
-                // });
-
-                // console.log('Performance metrics:', metrics);
+              // console.log('Performance metrics:', metrics);
               //   const flare = {
               //     name: "mainMiddleware.ts",
               //     children: [{
@@ -656,9 +559,139 @@ Memory: external 0.13 MB
           break;
 
         case 'openMetricsPanel':
-          openMetricsPanel();
+          // if (metricsData) {
+
+          // }
+          const metricsPanel = vscode.window.createWebviewPanel(
+            'metrics',
+            'NextFlow Metrics',
+            vscode.ViewColumn.Two,
+            {
+              enableScripts: true,
+              retainContextWhenHidden: true,
+            }
+          );
+
+          metricsPanel.webview.html = `
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Metrics</title>
+              <style>
+                body {
+                  font-family: Arial, sans-serif;
+                  padding: 16px;
+                  color: var(--vscode-foreground);
+                  background-color: var(--vscode-editor-background);
+                }
+                .metrics-container {
+                  display: flex;
+                  flex-direction: column;
+                  gap: 12px;
+                }
+                .metric-section {
+                  background: var(--vscode-editor-background);
+                  border: 1px solid var(--vscode-panel-border);
+                  border-radius: 4px;
+                  padding: 12px;
+                  margin-bottom: 16px;
+                }
+                .metric-section h2 {
+                  margin: 0 0 12px 0;
+                  font-size: 1.2em;
+                  color: var(--vscode-foreground);
+                }
+                .metric {
+                  display: flex;
+                  justify-content: space-between;
+                  font-size: 14px;
+                  padding: 8px 0;
+                  border-bottom: 1px solid var(--vscode-panel-border);
+                }
+                .metric:last-child {
+                  border-bottom: none;
+                }
+                .value {
+                  font-family: monospace;
+                  color: var(--vscode-textLink-foreground);
+                }
+              </style>
+            </head>
+            <body>
+              <div class="metrics-container">
+                <h1>NextFlow Metrics</h1>
+                
+                <div class="metric-section">
+                  <h2>CPU Usage</h2>
+                  <div class="metric">
+                    <span>User Time:</span>
+                    <span id="cpu-user" class="value">Loading...</span>
+                  </div>
+                  <div class="metric">
+                    <span>System Time:</span>
+                    <span id="cpu-system" class="value">Loading...</span>
+                  </div>
+                  <div class="metric">
+                    <span>Total CPU Time:</span>
+                    <span id="cpu-total" class="value">Loading...</span>
+                  </div>
+                </div>
+            
+                <div class="metric-section">
+                  <h2>Memory Usage</h2>
+                  <div class="metric">
+                    <span>Heap Used:</span>
+                    <span id="memory-heap-used" class="value">Loading...</span>
+                  </div>
+                  <div class="metric">
+                    <span>Heap Total:</span>
+                    <span id="memory-heap-total" class="value">Loading...</span>
+                  </div>
+                  <div class="metric">
+                    <span>RSS:</span>
+                    <span id="memory-rss" class="value">Loading...</span>
+                  </div>
+                  <div class="metric">
+                    <span>External:</span>
+                    <span id="memory-external" class="value">Loading...</span>
+                  </div>
+                </div>
+              </div>
+            
+              <script>
+                window.addEventListener('message', (event) => {
+                  const message = event.data;
+            
+                  if (message.command === 'openMetricsPanel') {
+                    // Update CPU metrics
+                    if (message.metrics && message.metrics.cpu) {
+                      document.getElementById('cpu-user').textContent = message.metrics.cpu.user;
+                      document.getElementById('cpu-system').textContent = message.metrics.cpu.system;
+                      document.getElementById('cpu-total').textContent = message.metrics.cpu.total;
+                    }
+            
+                    // Update Memory metrics
+                    if (message.metrics && message.metrics.memory) {
+                      document.getElementById('memory-heap-used').textContent = message.metrics.memory.heapUsed;
+                      document.getElementById('memory-heap-total').textContent = message.metrics.memory.heapTotal;
+                      document.getElementById('memory-rss').textContent = message.metrics.memory.rss;
+                      document.getElementById('memory-external').textContent = message.metrics.memory.external;
+                    }
+                  }
+                });
+              </script>
+            </body>
+            </html>
+            `;
+
+          metricsPanel.webview.postMessage({
+            command: 'openMetricsPanel',
+            metrics: metricsData,
+          });
           break;
-        
+
         case 'alert':
           vscode.window.showErrorMessage(message.text);
           break;
@@ -683,27 +716,131 @@ function getWebviewContent(uri: vscode.Uri) {
       </html>`;
 }
 
-function openMetricsPanel() {
-  const metricsPanel = vscode.window.createWebviewPanel(
-    'metrics',
-    'NextFlow Metrics',
-    vscode.ViewColumn.Two,
-    {
-      enableScripts: true,
-      retainContextWhenHidden: true,
-    }
-  );
+// function openMetricsPanel() {
+//   const metricsPanel = vscode.window.createWebviewPanel(
+//     'metrics',
+//     'NextFlow Metrics',
+//     vscode.ViewColumn.Two,
+//     {
+//       enableScripts: true,
+//       retainContextWhenHidden: true,
+//     }
+//   );
 
-  metricsPanel.webview.html = `
-      <!DOCTYPE html>
-      <html>
-      <head><title>Metrics</title></head>
-      <body>
-        <h1>NextFlow Metrics</h1>
-      </body>
-      </html>
-    `;
-}
+// metricsPanel.webview.html = `
+// <!DOCTYPE html>
+// <html lang="en">
+// <head>
+//   <meta charset="UTF-8">
+//   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+//   <title>Metrics</title>
+//   <style>
+//     body {
+//       font-family: Arial, sans-serif;
+//       padding: 16px;
+//       color: var(--vscode-foreground);
+//       background-color: var(--vscode-editor-background);
+//     }
+//     .metrics-container {
+//       display: flex;
+//       flex-direction: column;
+//       gap: 12px;
+//     }
+//     .metric-section {
+//       background: var(--vscode-editor-background);
+//       border: 1px solid var(--vscode-panel-border);
+//       border-radius: 4px;
+//       padding: 12px;
+//       margin-bottom: 16px;
+//     }
+//     .metric-section h2 {
+//       margin: 0 0 12px 0;
+//       font-size: 1.2em;
+//       color: var(--vscode-foreground);
+//     }
+//     .metric {
+//       display: flex;
+//       justify-content: space-between;
+//       font-size: 14px;
+//       padding: 8px 0;
+//       border-bottom: 1px solid var(--vscode-panel-border);
+//     }
+//     .metric:last-child {
+//       border-bottom: none;
+//     }
+//     .value {
+//       font-family: monospace;
+//       color: var(--vscode-textLink-foreground);
+//     }
+//   </style>
+// </head>
+// <body>
+//   <div class="metrics-container">
+//     <h1>NextFlow Metrics</h1>
+
+//     <div class="metric-section">
+//       <h2>CPU Usage</h2>
+//       <div class="metric">
+//         <span>User Time:</span>
+//         <span id="cpu-user" class="value">Loading...</span>
+//       </div>
+//       <div class="metric">
+//         <span>System Time:</span>
+//         <span id="cpu-system" class="value">Loading...</span>
+//       </div>
+//       <div class="metric">
+//         <span>Total CPU Time:</span>
+//         <span id="cpu-total" class="value">Loading...</span>
+//       </div>
+//     </div>
+
+//     <div class="metric-section">
+//       <h2>Memory Usage</h2>
+//       <div class="metric">
+//         <span>Heap Used:</span>
+//         <span id="memory-heap-used" class="value">Loading...</span>
+//       </div>
+//       <div class="metric">
+//         <span>Heap Total:</span>
+//         <span id="memory-heap-total" class="value">Loading...</span>
+//       </div>
+//       <div class="metric">
+//         <span>RSS:</span>
+//         <span id="memory-rss" class="value">Loading...</span>
+//       </div>
+//       <div class="metric">
+//         <span>External:</span>
+//         <span id="memory-external" class="value">Loading...</span>
+//       </div>
+//     </div>
+//   </div>
+
+//   <script>
+//     window.addEventListener('message', (event) => {
+//       const message = event.data;
+
+//       if (message.command === 'openMetricsPanel') {
+//         // Update CPU metrics
+//         if (message.metrics && message.metrics.cpu) {
+//           document.getElementById('cpu-user').textContent = message.metrics.cpu.user;
+//           document.getElementById('cpu-system').textContent = message.metrics.cpu.system;
+//           document.getElementById('cpu-total').textContent = message.metrics.cpu.total;
+//         }
+
+//         // Update Memory metrics
+//         if (message.metrics && message.metrics.memory) {
+//           document.getElementById('memory-heap-used').textContent = message.metrics.memory.heapUsed;
+//           document.getElementById('memory-heap-total').textContent = message.metrics.memory.heapTotal;
+//           document.getElementById('memory-rss').textContent = message.metrics.memory.rss;
+//           document.getElementById('memory-external').textContent = message.metrics.memory.external;
+//         }
+//       }
+//     });
+//   </script>
+// </body>
+// </html>
+// `;
+// }
 
 // This method is called when your extension is deactivated
 export function deactivate() {}

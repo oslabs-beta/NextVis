@@ -19,50 +19,82 @@ const parsingScript = (filePath: string) => {
       return parts.slice(-2).join('/');
     };
     
-    const jsonCreator = (arrayOfFinalExports: FileObject[], finalObject: any = {}) => {
-      // given the array, iterate through each object, this will be a new node everytime\
-      arrayOfFinalExports.forEach(object  => {
-        //  objects will have this format ex:  {
+    const jsonCreator = (
+        arrayOfFinalExports: FileObject[],
+        finalObject: any = {}
+      ): any => {
+        // given the array, iterate through each object, this will be a new node everytime\
+        console.log('arrayOfFinalExports :>> ', arrayOfFinalExports);
+        arrayOfFinalExports.forEach((object) => {
+          //  objects will have this format ex:  {
           //   name: 'middleware',
-          //   file: '/home/anoyola/NextFlow-test-app/large-testapp/src/app/middlewares/mainMiddleware.ts',
+          //   `file: '/home/anoyola/NextFlow-test-app/large-testapp/src/app/middlewares/mainMiddleware.ts'`,
           //   path: Set(0) {},
           //   matcher: Set(2) { '/protected/', '/login' }
           // },
-        // lets cut the file path and include only the last two /s
-        let cutPath = getLastTwoSegments(object.file);
-        // console.log(cutPath);
-        // and then store the path into the final object under the key 'name' and add a children array to it
-        if(!finalObject.name) {
-          finalObject.name = cutPath;
-          finalObject.children = [];
-        }
-        // console.log('finalObject :>> ', finalObject);
-        // now lets look at the name key in our orignal object and add that to its children array. 
-        if (!finalObject.children.some((child: any) => child.name === object.name)) {
-          finalObject.children.push({ name: object.name, children: [] });
-        }
-        // we'll add that to the children array with the same name:ex, children:[];, format
-        // if the object has valid paths, we'll add that to the children array of the middle ware function, in this case middleware
-        if (object.path.size !== 0) {
-          const child = finalObject.children.find((child: any) => child.name === object.name);
-          if (child) {
-            child.children = [...object.path];
-            // console.log('child.children :>> ', child.children);
+          // lets cut the file path and include only the last two /s
+          // let cutPath = getLastTwoSegments(object.file);
+          let cutPath = path.parse(object.file).base;
+          console.log('cutPath: ', cutPath);
+          // and then store the path into the final object under the key 'name' and add a children array to it
+          console.log('finalObject in object creator:>> ', finalObject);
+          if (!finalObject.name) {
+            finalObject.name = cutPath;
+            finalObject.children = [];
           }
-        }
-        // console.log('finalObject :>> ', finalObject);
-        // we'll add the matcher as a seperate key that can be ignored for now
-        if (object.matcher.size !== 0) {
-          const child = finalObject.children.find((child: any) => child.name === object.name);
-          if (child) {
-            child.matcher = [...object.matcher];
-            // console.log('child.matcher :>> ', child.matcher);
+          console.log('finalObject before matcher :>> ', finalObject);
+          if (!finalObject.matcher) {
+            finalObject.matcher = [...object.matcher];
           }
-        }
-      });
-      // console.log('finalObject :>> ', finalObject);
-      return JSON.stringify(finalObject);
-    };
+          console.log('finalObject after matcher:>> ', finalObject);
+          // now lets look at the name key(aka the actual middleware function within the file) in our orignal object and add that to its children array.
+          console.log('finalObject before adding children:>> ', finalObject);
+          if (
+            !finalObject.children.some((child: any) => child.name === object.name)
+          ) {
+            finalObject.children.push({ name: object.name, children: [] });
+          }
+          console.log('finalObject after adding children:>> ', finalObject);
+          // we'll add that to the children array with the same name:ex, children:[];, format
+          // if the object has valid paths, we'll add that to the children array of the middle ware function, in this case middleware
+          if (object.path.size !== 0) {
+            const child = finalObject.children.find(
+              (child: any) => child.name === object.name
+            );
+            if (child) {
+              object.path.forEach((path) => {
+                child.children.push({ name: path });
+              });
+              console.log('child.children :>> ', child.children);
+            }
+          }
+          // we'll add the matcher as a seperate key that can be ignored for now
+          if (object.matcher.size !== 0) {
+        
+            const child = finalObject.children.find(
+              (child: any) => child.name === JSON.stringify({ cutPath })
+            );
+            console.log('child before match:>> ', child);
+            if (child) {
+              child.matcher = [...object.matcher];
+              console.log('child.matcher :>> ', child.matcher);
+            }
+          }
+          
+          const finalChildrenArray = finalObject.children.find(
+            (child: any) => child.name === object.name
+          );
+          // console.log('finalChildrenArray :>> ', finalChildrenArray);
+          if (
+            finalChildrenArray.children &&
+            finalChildrenArray.children.length === 0
+          ) {
+            delete finalChildrenArray.children;
+          }
+        });
+        // console.log('finalObject :>> ', finalObject);
+        return finalObject;
+      };
     
     const pairMatcherWithFile = async (fileObject: {file: string, name: string, path: Set<string | void>, matcher: Set<string | null> }) =>{
       try {
@@ -105,7 +137,7 @@ const parsingScript = (filePath: string) => {
       }
     }
     
-    const pairPathWithMiddleware = (fileObject: FileObject) => {
+    const pairPathWithMiddleware = async (fileObject: FileObject) => {
       return new Promise((resolve, reject) => {
         if (!fileObject.path) {
           fileObject.path = new Set();
