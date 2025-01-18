@@ -89,9 +89,12 @@ const createChart = (data) => {
 
         if (!showMatchers) return;
 
-        const matcher = d.data.matcher
-          ? d.data.matcher.join(', ')
-          : 'No matcher in this middleware';
+        const matcher =
+          d.data.matcher && d.data.matcher.length
+            ? d.data.matcher.join(', ')
+            : 'No matcher in this middleware';
+
+        const type = d.data.type;
 
         let info = g
           .append('text')
@@ -100,9 +103,18 @@ const createChart = (data) => {
           .attr('y', 10)
           .attr('stroke', 'white')
           .text(matcher); // parse from script --> matcher or conditional
+
+        let info2 = g
+          .append('text')
+          .classed('info', true)
+          .attr('x', 20)
+          .attr('y', 20)
+          .attr('stroke', 'white')
+          .text(type);
       })
       .on('mouseout', function () {
-        d3.select(this).select('text.info').remove();
+        d3.select(this).selectAll('text.info', 'text.info2').remove();
+        // d3.select(this).select('text.info2').remove();
       })
       .on('click', (event, d) => {
         d.children = d.children ? null : d._children;
