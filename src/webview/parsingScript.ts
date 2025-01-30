@@ -8,8 +8,8 @@ import * as t from '@babel/types';
 interface FileObject {
   file: string;
   name: string;
-  path: Set<string>;
-  matcher: Set<string>;
+  path?: Set<string>;
+  matcher?: Set<string>;
 }
 
 interface FinalObject {
@@ -30,6 +30,8 @@ interface ImportData {
 interface ExportData {
   name: string;
   file: string;
+  path?: Set<string>;
+  matcher?: Set<string>;
 }
 
 const parsingScript = async (filePath: string): Promise<FinalObject | undefined> => {
@@ -41,8 +43,6 @@ const parsingScript = async (filePath: string): Promise<FinalObject | undefined>
     // given the array, iterate through each object, this will be a new node everytime\
     const rootMiddlewareFilePath = arrayOfFinalExports[0].file;
     let rootCutPath = path.parse(rootMiddlewareFilePath).base;
-    console.log('rootCutPath: ', rootCutPath);
-    console.log('typeof rootCutPath: ', typeof rootCutPath);
     arrayOfFinalExports.forEach((object) => {
       // lets cut the file path and include only the last two /s
       let cutPath = path.parse(object.file).base;
@@ -53,7 +53,7 @@ const parsingScript = async (filePath: string): Promise<FinalObject | undefined>
         finalObject.name = rootCutPath;
         finalObject.children = [];
         finalObject.type = 'file';
-        finalObject.matcher = [...object.matcher];
+        finalObject.matcher = object.matcher ? [...object.matcher] : [];
       }
 
       // we now have { name: rootPath, children: [], type: 'file', matcher:[] }
@@ -67,7 +67,7 @@ const parsingScript = async (filePath: string): Promise<FinalObject | undefined>
             name: cutPath,
             children: [],
             type: 'file',
-            matcher: [...object.matcher],
+            matcher: object.matcher ? [...object.matcher] : [],
           });
         }
         // now we need to select out current file
@@ -86,7 +86,7 @@ const parsingScript = async (filePath: string): Promise<FinalObject | undefined>
         // need to check if this function has the current paths already in the children array;
         // since paths are unique to functions, simply check if the function's child array is empty?
         if (selectedChildFunctionObject) {
-          object.path.forEach((path) => {
+          object.path?.forEach((path) => {
             if (!selectedChildFunctionObject.children.some((childObject) => childObject.name === path)) {
               selectedChildFunctionObject.children.push({
                 name: path,
@@ -112,7 +112,7 @@ const parsingScript = async (filePath: string): Promise<FinalObject | undefined>
         const selectedChildFunctionObject = finalObject.children.find((childObject) => childObject.name === object.name);
         // check if this functions children array is empty
         if (selectedChildFunctionObject) {
-          object.path.forEach((path) => {
+          object.path?.forEach((path) => {
             if (!selectedChildFunctionObject.children.some((childObject) => childObject.name === path)) {
               selectedChildFunctionObject.children.push({
                 name: path,
@@ -124,7 +124,6 @@ const parsingScript = async (filePath: string): Promise<FinalObject | undefined>
         }
       }
     });
-    console.log('finalObject from finalObjectCreator: ', finalObject);
     return finalObject;
   };
 
@@ -160,7 +159,7 @@ const parsingScript = async (filePath: string): Promise<FinalObject | undefined>
                 .trim(); // Remove extra spaces
           
               // Add the normalized match to the matcher set
-              fileObject.matcher.add(`'${normalizedMatch}'`);
+              fileObject.matcher?.add(`'${normalizedMatch}'`);
             });
           }
         }
@@ -237,7 +236,7 @@ const parsingScript = async (filePath: string): Promise<FinalObject | undefined>
 
             // Add valid paths to fileObject.path
             validPaths.forEach((match) => {
-              fileObject.path.add(match);
+              fileObject.path?.add(match);
             });
           }
         }
@@ -273,11 +272,10 @@ const parsingScript = async (filePath: string): Promise<FinalObject | undefined>
             source: path.node.source.value,
             
             specifiers: path.node.specifiers.map((spec) => ({
-              imported: spec.type === "ImportSpecifier" ? spec.imported.name : 'default',
+              imported: spec.type === "ImportSpecifier" ? (t.isIdentifier(spec.imported) ? spec.imported.name : spec.imported.value) : 'default',
               local: spec.local.name,
             })),
           };
-          console.log('spec', importData.specifiers);
           imports.push(importData);
         },
         ExportNamedDeclaration(path: NodePath<t.ExportNamedDeclaration>) {
@@ -285,12 +283,14 @@ const parsingScript = async (filePath: string): Promise<FinalObject | undefined>
             const declaration = path.node.declaration;
             if (t.isVariableDeclaration(declaration)) {
               declaration.declarations.forEach((decl) => {
-                exports.push({
-                  name: decl.id.name,
-                  file: filePath,
-                });
+                if (t.isIdentifier(decl.id)){
+                  exports.push({
+                    name: decl.id.name,
+                    file: filePath,
+                  });
+                }
               });
-            } else if (declaration.id) {
+            } else if (t.isFunctionDeclaration(declaration) && declaration.id) {
               exports.push({
                 name: declaration.id.name,
                 file: filePath,
@@ -298,24 +298,28 @@ const parsingScript = async (filePath: string): Promise<FinalObject | undefined>
             }
           } else if (path.node.specifiers) {
             path.node.specifiers.forEach((spec) => {
-              exports.push({
-                name: spec.exported.name,
-                file: filePath,
-              });
+              if (t.isIdentifier(spec.exported)) {
+                exports.push({
+                  name: spec.exported.name,
+                  file: filePath,
+                });
+              }
             });
           }
         },
         ExportDefaultDeclaration(path: NodePath<t.ExportDefaultDeclaration>) {
           const declaration = path.node.declaration;
           if (
-            declaration &&
-            (declaration.type === 'FunctionDeclaration' ||
-              declaration.type === 'ArrowFunctionExpression' ||
-              declaration.type === 'FunctionExpression') &&
-            declaration.id
+            (t.isFunctionDeclaration(declaration) && declaration.id) ||
+            (t.isFunctionExpression(declaration) && declaration.id)
           ) {
             exports.push({
               name: declaration.id.name,
+              file: filePath,
+            });
+          } else if (t.isArrowFunctionExpression(declaration)) {
+            exports.push({
+              name: 'default',
               file: filePath,
             });
           }
