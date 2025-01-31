@@ -169,70 +169,128 @@ const parsingScript = async (
   };
 
   const pairMatcherWithFile = async (fileObject: FileObject): Promise<void> => {
-    const content = fs.readFileSync(fileObject.file, 'utf8');
-    const matches = content.match(dynamicMatcherRegex);
-    if (matches) {
-      matches.forEach((match) => {
-        const normalizedMatch = match
-          .replace(/^matcher:\s*\[/, "")
-          .replace(/\]$/, "")
-          .replace(/^['"]|['"]$/g, "")
-          .trim();
-        fileObject.matcher.add(`'${normalizedMatch}'`);
-      });
-    }
+    return new Promise((resolve, reject) => {
+      try {
+        if (!fileObject.matcher) {
+          fileObject.matcher = new Set();
+        }
+
+        const readStream = fs.createReadStream(fileObject.file);
+        const rl = readline.createInterface({
+          input: readStream,
+          crlfDelay: Infinity,
+        });
+
+        rl.on('line', (line: string) => {
+          const cleanLine = line.trim();
+          // If the line contains the word 'matcher' or any relevant keyword, apply regex matching
+          if (cleanLine.includes('matcher')) {
+            const matches = cleanLine.match(dynamicMatcherRegex);
+            // If matches are found, normalize them
+            if (matches) {
+              matches.forEach((match) => {
+                // Normalize the match
+                const normalizedMatch = match
+                  .replace(/^matcher:\s*\[/, '')
+                  .replace(/\]$/, '')
+                  .replace(/^['"]|['"]$/g, '')
+                  .trim();
+                // Add the normalized match to the matcher set in file object
+                fileObject.matcher.add(`'${normalizedMatch}'`);
+              });
+            }
+          }
+        });
+
+        rl.on('close', () => {
+          resolve(); // Resolve the promise when the file is fully processed
+        });
+
+        rl.on('error', (error) => {
+          reject(error); // Reject the promise if there's an error
+        });
+      } catch (error) {
+        reject(error); // Reject the promise if there's an error
+      }
+    });
   };
 
-  const pairPathWithMiddleware = async (fileObject: FileObject): Promise<void> => {
-    // Initialize `path` and `matcher` if they are undefined
-    if (!fileObject.path) {
-      fileObject.path = new Set();
-    }
-    if (!fileObject.matcher) {
-      fileObject.matcher = new Set();
-    }
-  
-    // Read the file content
-    const content = fs.readFileSync(fileObject.file, 'utf8');
-    const lines = content.split('\n');
-    let inFunction = false;
-  
-    // Process each line
-    lines.forEach((line) => {
-      const cleanLine = line.trim();
-      const regex = new RegExp(`\\bexport\\b(?:\\s+\\w+)*\\s+function\\s+${fileObject.name}\\b`);
-      const secondRegex = new RegExp(`\\bexport\\b`);
-  
-      // Check if we're exiting the function
-      if (secondRegex.test(cleanLine) && inFunction) {
-        inFunction = false;
-      }
-  
-      // Check if we're entering the target function
-      if (regex.test(cleanLine)) {
-        inFunction = true;
-      }
-  
-      // If we're inside the function, process the line
-      if (inFunction) {
-        // Remove comments from the line
-        const noCommentsText = cleanLine
-          .replace(/\/\/.*$/gm, '') // Remove single-line comments
-          .replace(/\/\*[\s\S]*?\*\//g, ''); // Remove multi-line comments
-  
-        // Skip lines that start with 'import' or 'require'
-        if (noCommentsText.trim().startsWith('import') || noCommentsText.trim().startsWith('require')) {
-          return;
+  const pairPathWithMiddleware = async (
+    fileObject: FileObject
+  ): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      try {
+        // Initialize `path` and `matcher` if they are undefined
+        if (!fileObject.path) {
+          fileObject.path = new Set();
         }
-  
-        // Extract paths using the pathRegex
-        const matches = noCommentsText.match(pathRegex);
-        if (matches) {
-          // Filter out invalid paths
-          const validPaths = matches.filter((path) => !invalidPatterns.some((pattern) => path.includes(pattern)));
-          // Add valid paths to the fileObject.path Set
-          validPaths.forEach((match) => fileObject.path.add(match));
+        if (!fileObject.matcher) {
+          fileObject.matcher = new Set();
         }
+
+        const readStream = fs.createReadStream(fileObject.file, 'utf8');
+        const rl = readline.createInterface({
+          input: readStream,
+          crlfDelay: Infinity,
+        });
+
+        let inFunction = false;
+
+        rl.on('line', (line) => {
+          const cleanLine = line.trim();
+          const regex = new RegExp(
+            `\\bexport\\b(?:\\s+\\w+)*\\s+function\\s+${fileObject.name}\\b`
+          );
+          const secondRegex = new RegExp(`\\bexport\\b`);
+
+          // Check if we're exiting the function
+          if (secondRegex.test(cleanLine) && inFunction) {
+            inFunction = false;
+          }
+
+          // Check if we're entering the target function
+          if (regex.test(cleanLine)) {
+            inFunction = true;
+          }
+
+          // If we're inside the function, process the line
+          if (inFunction) {
+            // Remove comments from the line
+            const noCommentsText = cleanLine
+              .replace(/\/\/.*$/gm, '') // Remove single-line comments
+              .replace(/\/\*[\s\S]*?\*\//g, ''); // Remove multi-line comments
+
+            // Skip lines that start with 'import' or 'require'
+            if (
+              noCommentsText.trim().startsWith('import') ||
+              noCommentsText.trim().startsWith('require')
+            ) {
+              return;
+            }
+
+            // Extract paths using the pathRegex
+            const matches = noCommentsText.match(pathRegex);
+            if (matches) {
+              // Filter out invalid paths
+              const validPaths = matches.filter(
+                (path) =>
+                  !invalidPatterns.some((pattern) => path.includes(pattern))
+              );
+              // Add valid paths to the fileObject.path Set
+              validPaths.forEach((match) => fileObject.path.add(match));
+            }
+          }
+        });
+
+        rl.on('close', () => {
+          resolve(); // Resolve the promise when the file is fully processed
+        });
+
+        rl.on('error', (error) => {
+          reject(error); // Reject the promise if there's an error
+        });
+      } catch (error) {
+        reject(error); // Reject the promise if there's an error
       }
     });
   };
