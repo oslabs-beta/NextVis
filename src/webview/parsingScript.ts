@@ -170,14 +170,19 @@ const parsingScript = async (
 
   const pairMatcherWithFile = async (fileObject: FileObject): Promise<void> => {
     const content = fs.readFileSync(fileObject.file, 'utf8');
+      // If the line contains the word 'matcher' or any relevant keyword, apply regex matching
+        // Extract paths from the line using regex
     const matches = content.match(dynamicMatcherRegex);
+    // If matches are found, normalize them
     if (matches) {
       matches.forEach((match) => {
+         // Normalize the match
         const normalizedMatch = match
           .replace(/^matcher:\s*\[/, "")
           .replace(/\]$/, "")
           .replace(/^['"]|['"]$/g, "")
           .trim();
+           // Add the normalized match to the matcher set in file object
         fileObject.matcher.add(`'${normalizedMatch}'`);
       });
     }
