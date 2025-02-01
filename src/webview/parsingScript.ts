@@ -142,7 +142,7 @@ const parsingScript = async (
         );
         // check if this functions children array is empty
         if (selectedChildFunctionObject) {
-          object.path.forEach((path) => {
+          object.path?.forEach((path) => {
             if (!selectedChildFunctionObject.children.some((childObject) => childObject.name === path)) {
               selectedChildFunctionObject.children.push({
                 name: path,
@@ -189,11 +189,13 @@ const parsingScript = async (
                 .trim(); // Remove extra spaces
           
               // Add the normalized match to the matcher set
-              fileObject.matcher.add(`'${normalizedMatch}'`);
+              fileObject.matcher?.add(`'${normalizedMatch}'`);
             });
           }
         }
       });
+    } catch (error) {
+      console.log('Error encountered: ', error);
     }
   };
 
@@ -263,7 +265,7 @@ const parsingScript = async (
 
             // Add valid paths to fileObject.path
             validPaths.forEach((match) => {
-              fileObject.path.add(match);
+              fileObject.path?.add(match);
             });
           }
         }
@@ -298,7 +300,7 @@ const parsingScript = async (
             source: path.node.source.value,
             
             specifiers: path.node.specifiers.map((spec) => ({
-              imported: spec.type === "ImportSpecifier" ? spec.imported.name : 'default',
+              imported: spec.type === "ImportSpecifier" ? (t.isIdentifier(spec.imported) ? spec.imported.name : spec.imported.value) : 'default',
               local: spec.local.name,
             })),
           };
@@ -310,12 +312,14 @@ const parsingScript = async (
             const declaration = path.node.declaration;
             if (t.isVariableDeclaration(declaration)) {
               declaration.declarations.forEach((decl) => {
-                exports.push({
-                  name: decl.id.name,
-                  file: filePath,
-                });
+                if (t.isIdentifier(decl.id)) {
+                  exports.push({
+                    name: decl.id.name,
+                    file: filePath,
+                  });
+                }
               });
-            } else if (declaration.id) {
+            } else if (t.isFunctionDeclaration(declaration) && declaration.id) {
               exports.push({
                 name: declaration.id.name,
                 file: filePath,
@@ -323,24 +327,28 @@ const parsingScript = async (
             }
           } else if (path.node.specifiers) {
             path.node.specifiers.forEach((spec) => {
-              exports.push({
-                name: spec.exported.name,
-                file: filePath,
-              });
+              if (t.isIdentifier(spec.exported)) {
+                exports.push({
+                  name: spec.exported.name,
+                  file: filePath,
+                });
+              }
             });
           }
         },
         ExportDefaultDeclaration(path: NodePath<t.ExportDefaultDeclaration>) {
           const declaration = path.node.declaration;
           if (
-            declaration &&
-            (declaration.type === 'FunctionDeclaration' ||
-              declaration.type === 'ArrowFunctionExpression' ||
-              declaration.type === 'FunctionExpression') &&
-            declaration.id
+            (t.isFunctionDeclaration(declaration) && declaration.id) ||
+            (t.isFunctionExpression(declaration) && declaration.id)
           ) {
             exports.push({
               name: declaration.id.name,
+              file: filePath,
+            });
+          } else if (t.isArrowFunctionExpression(declaration)) {
+            exports.push({
+              name: 'default',
               file: filePath,
             });
           }
