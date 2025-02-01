@@ -31,7 +31,7 @@ interface ExportData {
   name: string;
   file: string;
   path?: Set<string>;
-  matcher?: Set<string>;
+  matcher?: Set<string>
 }
 
 const parsingScript = async (filePath: string): Promise<FinalObject | undefined> => {

@@ -2,17 +2,28 @@ import * as d3 from 'd3';
 
 let showMatchers = false;
 
+const diagonal = d3
+.linkHorizontal()
+.x((d) => d.y)
+.y((d) => d.x);
+
+const root2 = d3.hierarchy
+console.log(root2)
+
+
+console.log(diagonal.x.prototype);
 const createChart = (data) => {
   const width = 1000;
   const marginTop = 30;
   const marginRight = 30;
   const marginBottom = 30;
   const marginLeft = 40;
-
+  
   // Rows are separated by dx pixels, columns by dy pixels. These names can be counter-intuitive
   // (dx is a height, and dy a width). This because the tree must be viewed with the root at the
   // “bottom”, in the data domain. The width of a column is based on the tree’s height.
   const root = d3.hierarchy(data);
+
   const dx = 100;
   const dy = (width - marginRight - marginLeft) / (1 + root.height);
 

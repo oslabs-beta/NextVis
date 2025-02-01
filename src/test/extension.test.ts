@@ -2,7 +2,6 @@
 import * as vscode from 'vscode';
 import { activate, deactivate } from '../extension';
 import * as path from 'path';
-// import * as sinon from 'sinon';
 import * as extension from '../extension';
 
 let registeredCommands: { [key: string]: Function } = {};
