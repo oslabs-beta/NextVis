@@ -110,12 +110,8 @@ const parsingScript = async (
         // need to check if this function has the current paths already in the children array;
         // since paths are unique to functions, simply check if the function's child array is empty?
         if (selectedChildFunctionObject) {
-          object.path.forEach((path) => {
-            if (
-              !selectedChildFunctionObject.children.some(
-                (childObject) => childObject.name === path
-              )
-            ) {
+          object.path?.forEach((path) => {
+            if (!selectedChildFunctionObject.children.some((childObject) => childObject.name === path)) {
               selectedChildFunctionObject.children.push({
                 name: path,
                 children: [],
@@ -147,11 +143,7 @@ const parsingScript = async (
         // check if this functions children array is empty
         if (selectedChildFunctionObject) {
           object.path.forEach((path) => {
-            if (
-              !selectedChildFunctionObject.children.some(
-                (childObject) => childObject.name === path
-              )
-            ) {
+            if (!selectedChildFunctionObject.children.some((childObject) => childObject.name === path)) {
               selectedChildFunctionObject.children.push({
                 name: path,
                 children: [],
@@ -166,76 +158,124 @@ const parsingScript = async (
   };
 
   const pairMatcherWithFile = async (fileObject: FileObject): Promise<void> => {
-    const content = fs.readFileSync(fileObject.file, 'utf8');
-      // If the line contains the word 'matcher' or any relevant keyword, apply regex matching
-        // Extract paths from the line using regex
-    const matches = content.match(dynamicMatcherRegex);
-    // If matches are found, normalize them
-    if (matches) {
-      matches.forEach((match) => {
-         // Normalize the match
-        const normalizedMatch = match
-          .replace(/^matcher:\s*\[/, "")
-          .replace(/\]$/, "")
-          .replace(/^['"]|['"]$/g, "")
-          .trim();
-           // Add the normalized match to the matcher set in file object
-        fileObject.matcher.add(`'${normalizedMatch}'`);
+    try {
+      if (!fileObject.matcher) {
+        fileObject.matcher = new Set();
+      }
+      const dynamicMatcherRegex = /matcher:\s*\[\s*['"](.+?)['"]\s*\]/;
+
+      const readStream = fs.createReadStream(fileObject.file);
+      const rl = readline.createInterface({
+        input: readStream,
+        crlfDelay: Infinity,
+      });
+
+      rl.on('line', (line: string) => {
+        const cleanLine = line.trim();
+
+        // If the line contains the word 'matcher' or any relevant keyword, apply regex matching
+        if (cleanLine.includes('matcher')) {
+          // Extract paths from the line using regex
+          const matches = cleanLine.match(dynamicMatcherRegex);
+
+          // If matches are found, add them to fileObject.matcher
+          if (matches) {
+            matches.forEach((match) => {
+              // Normalize the match
+              const normalizedMatch = match
+                .replace(/^matcher:\s*\[/, "") // Remove "matcher: [" prefix
+                .replace(/\]$/, "") // Remove the closing "]"
+                .replace(/^['"]|['"]$/g, "") // Remove leading/trailing quotes
+                .trim(); // Remove extra spaces
+          
+              // Add the normalized match to the matcher set
+              fileObject.matcher.add(`'${normalizedMatch}'`);
+            });
+          }
+        }
       });
     }
   };
 
   const pairPathWithMiddleware = async (fileObject: FileObject): Promise<void> => {
-    // Initialize `path` and `matcher` if they are undefined
-    if (!fileObject.path) {
-      fileObject.path = new Set();
-    }
-    if (!fileObject.matcher) {
-      fileObject.matcher = new Set();
-    }
-  
-    // Read the file content
-    const content = fs.readFileSync(fileObject.file, 'utf8');
-    const lines = content.split('\n');
-    let inFunction = false;
-  
-    // Process each line
-    lines.forEach((line) => {
-      const cleanLine = line.trim();
-      const regex = new RegExp(`\\bexport\\b(?:\\s+\\w+)*\\s+function\\s+${fileObject.name}\\b`);
-      const secondRegex = new RegExp(`\\bexport\\b`);
-  
-      // Check if we're exiting the function
-      if (secondRegex.test(cleanLine) && inFunction) {
-        inFunction = false;
+    return new Promise((resolve, reject) => {
+      if (!fileObject.path) {
+        fileObject.path = new Set();
       }
-  
-      // Check if we're entering the target function
-      if (regex.test(cleanLine)) {
-        inFunction = true;
-      }
-  
-      // If we're inside the function, process the line
-      if (inFunction) {
-        // Remove comments from the line
-        const noCommentsText = cleanLine
-          .replace(/\/\/.*$/gm, '') // Remove single-line comments
-          .replace(/\/\*[\s\S]*?\*\//g, ''); // Remove multi-line comments
-  
-        // Skip lines that start with 'import' or 'require'
-        if (noCommentsText.trim().startsWith('import') || noCommentsText.trim().startsWith('require')) {
-          return;
+
+      const readStream = fs.createReadStream(fileObject.file);
+      const rl = readline.createInterface({
+        input: readStream,
+        crlfDelay: Infinity,
+      });
+      let inFunction = false;
+
+      rl.on('line', (line: string) => {
+        const cleanLine = line.trim();
+
+        const regex = new RegExp(`\\bexport\\b(?:\\s+\\w+)*\\s+function\\s+${fileObject.name}\\b`);
+        const secondRegex = new RegExp(`\\bexport\\b`);
+
+        // Check if the line matches the pattern
+        if (secondRegex.test(cleanLine) && inFunction) {
+          // We found another 'export function', so toggle off inFunction
+          inFunction = false;
         }
-  
-        // Extract paths using the pathRegex
-        const matches = noCommentsText.match(pathRegex);
-        if (matches) {
-          // Filter out invalid paths
-          const validPaths = matches.filter((path) => !invalidPatterns.some((pattern) => path.includes(pattern)));
-          // Add valid paths to the fileObject.path Set
-          validPaths.forEach((match) => fileObject.path.add(match));
+
+        if (regex.test(cleanLine)) {
+          if (!inFunction) {
+            // We're entering a new function
+            inFunction = true;
+          }
         }
-      }
+
+        if (inFunction) {
+          const noCommentsText = cleanLine
+            .replace(/\/\/.*$/gm, '') // Remove single-line comments
+            .replace(/\/\*[\s\S]*?\*\//g, ''); // Remove multi-line comments
+
+          if (
+            noCommentsText.trim().startsWith('import') ||
+            noCommentsText.trim().startsWith('require')
+          ) {
+            return; // Skip this line
+          }
+
+          const pathRegex = /(?:\/[^\s,`']+|\b\w*\/\w*\b)/;
+
+          const matches = noCommentsText.match(pathRegex);
+
+          if (matches) {
+            // console.log('matches :>> ', matches);
+            const invalidPatterns = [
+              'application/json',
+              'text/html',
+              'text/css',
+              'application/xml', // Example unwanted patterns
+              'charset=',
+              'Content-Type',
+              'Authorization', // More patterns to avoid
+            ];
+            const validPaths = matches.filter((path) => {
+              // Check if any invalid pattern is part of the path
+              return !invalidPatterns.some((pattern) => path.includes(pattern));
+            });
+
+            // Add valid paths to fileObject.path
+            validPaths.forEach((match) => {
+              fileObject.path.add(match);
+            });
+          }
+        }
+      });
+
+      rl.on('close', () => {
+        resolve(); // Resolve the promise after processing is done
+      });
+
+      rl.on('error', (error: Error) => {
+        reject(error); // Reject the promise if there's an error
+      });
     });
   };
 
@@ -252,55 +292,60 @@ const parsingScript = async (
     const imports: ImportData[] = [];
     const exports: ExportData[] = [];
 
-    traverse(ast, {
-      ImportDeclaration(path: NodePath<t.ImportDeclaration>) {
-        imports.push({
-          source: path.node.source.value,
-          specifiers: path.node.specifiers.map((spec) => ({
-            imported:
-              spec.type === 'ImportSpecifier' ? spec.imported.name : 'default',
-            local: spec.local.name,
-          })),
-        });
-      },
-      ExportNamedDeclaration(path: NodePath<t.ExportNamedDeclaration>) {
-        if (path.node.declaration) {
-          const declaration = path.node.declaration;
-          if (t.isVariableDeclaration(declaration)) {
-            declaration.declarations.forEach((decl) => {
+      traverse(ast, {
+        ImportDeclaration(path: NodePath<t.ImportDeclaration>) {
+          const importData: ImportData = {
+            source: path.node.source.value,
+            
+            specifiers: path.node.specifiers.map((spec) => ({
+              imported: spec.type === "ImportSpecifier" ? spec.imported.name : 'default',
+              local: spec.local.name,
+            })),
+          };
+          console.log('spec', importData.specifiers);
+          imports.push(importData);
+        },
+        ExportNamedDeclaration(path: NodePath<t.ExportNamedDeclaration>) {
+          if (path.node.declaration) {
+            const declaration = path.node.declaration;
+            if (t.isVariableDeclaration(declaration)) {
+              declaration.declarations.forEach((decl) => {
+                exports.push({
+                  name: decl.id.name,
+                  file: filePath,
+                });
+              });
+            } else if (declaration.id) {
               exports.push({
-                name: decl.id.name,
+                name: declaration.id.name,
+                file: filePath,
+              });
+            }
+          } else if (path.node.specifiers) {
+            path.node.specifiers.forEach((spec) => {
+              exports.push({
+                name: spec.exported.name,
                 file: filePath,
               });
             });
-          } else if (declaration.id) {
+          }
+        },
+        ExportDefaultDeclaration(path: NodePath<t.ExportDefaultDeclaration>) {
+          const declaration = path.node.declaration;
+          if (
+            declaration &&
+            (declaration.type === 'FunctionDeclaration' ||
+              declaration.type === 'ArrowFunctionExpression' ||
+              declaration.type === 'FunctionExpression') &&
+            declaration.id
+          ) {
             exports.push({
               name: declaration.id.name,
               file: filePath,
             });
           }
-        } else if (path.node.specifiers) {
-          path.node.specifiers.forEach((spec) => {
-            exports.push({
-              name: spec.exported.name,
-              file: filePath,
-            });
-          });
-        }
-      },
-      ExportDefaultDeclaration(path: NodePath<t.ExportDefaultDeclaration>) {
-        const declaration = path.node.declaration;
-        if (
-          declaration &&
-          (declaration.type === 'FunctionDeclaration' ||
-            declaration.type === 'ArrowFunctionExpression' ||
-            declaration.type === 'FunctionExpression') &&
-          declaration.id
-        ) {
-          exports.push({ name: declaration.id.name, file: filePath });
-        }
-      },
-    });
+        },
+      });
 
     finalExports.push(...exports);
 
