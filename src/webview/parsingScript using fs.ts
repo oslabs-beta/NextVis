@@ -8,8 +8,8 @@ import * as t from '@babel/types';
 interface FileObject {
   file: string;
   name: string;
-  path?: Set<string>;
-  matcher?: Set<string>;
+  path: Set<string>;
+  matcher: Set<string>;
 }
 
 interface FinalObject {
@@ -30,8 +30,6 @@ interface ImportData {
 interface ExportData {
   name: string;
   file: string;
-  path?: Set<string>;
-  matcher?: Set<string>
 }
 
 const dynamicMatcherRegex = /matcher:\s*\[\s*['"](.+?)['"]\s*\]/;
@@ -56,6 +54,8 @@ const parsingScript = async (
     // given the array, iterate through each object, this will be a new node everytime\
     const rootMiddlewareFilePath = arrayOfFinalExports[0].file;
     let rootCutPath = path.parse(rootMiddlewareFilePath).base;
+    console.log('rootCutPath: ', rootCutPath);
+    console.log('typeof rootCutPath: ', typeof rootCutPath);
     arrayOfFinalExports.forEach((object) => {
       // lets cut the file path and include only the last two /s
       let cutPath = path.parse(object.file).base;
@@ -66,7 +66,7 @@ const parsingScript = async (
         finalObject.name = rootCutPath;
         finalObject.children = [];
         finalObject.type = 'file';
-        finalObject.matcher = object.matcher ? [...object.matcher] : [];
+        finalObject.matcher = [...object.matcher];
       }
 
       // we now have { name: rootPath, children: [], type: 'file', matcher:[] }
@@ -84,7 +84,7 @@ const parsingScript = async (
             name: cutPath,
             children: [],
             type: 'file',
-            matcher: object.matcher ? [...object.matcher] : [],
+            matcher: [...object.matcher],
           });
         }
         // now we need to select out current file
@@ -164,6 +164,7 @@ const parsingScript = async (
         }
       }
     });
+    console.log('finalObject from finalObjectCreator: ', finalObject);
     return finalObject;
   };
 
