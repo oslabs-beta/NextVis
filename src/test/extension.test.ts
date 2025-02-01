@@ -6,6 +6,7 @@ import * as extension from '../extension';
 
 let registeredCommands: { [key: string]: Function } = {};
 
+// mock the test with jest
 jest.mock('vscode', () => ({
 	ExtensionContext: jest.fn(),
 	window: {		
