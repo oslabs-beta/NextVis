@@ -1,9 +1,5 @@
-// import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { activate, deactivate } from '../extension';
-import * as path from 'path';
-// import * as sinon from 'sinon';
-import * as extension from '../extension';
+import { activate } from '../extension';
 
 let registeredCommands: { [key: string]: Function } = {};
 
@@ -99,9 +95,5 @@ describe ('NextFlow Extension Test', () => {
 					expect.objectContaining({enableScripts: true, retainContextWhenHidden: true})
 				);
 			});
-			// test('should call correct file path', () => {
-			// 	expect(asWebviewUriMock.mock.calls.length).toBe(1)
-			// });
-				
 	});
 });

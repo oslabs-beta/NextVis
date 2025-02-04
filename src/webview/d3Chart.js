@@ -331,3 +331,5 @@ document.getElementById('showMatchers').addEventListener('change', (event) => {
   showMatchers = event.target.checked;
   updateChart();
 });
+
+export default createChart;
