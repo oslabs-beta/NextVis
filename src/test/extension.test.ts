@@ -28,7 +28,10 @@ jest.mock('vscode', () => ({
 		registeredCommands[command] = callback;
 		return { dispose: jest.fn() };
 	  }),
-	  executeCommand: jest.fn()
+	  executeCommand: jest.fn((command) => {
+        if (registeredCommands[command]) {
+            return registeredCommands[command](); // Call the stored function
+        }}),
 	},
 	ViewColumn: {
 	  One: 1,
@@ -79,7 +82,7 @@ describe ('NextFlow Extension Test', () => {
 			  );
 			});
 
-			test('should create nextFlow and metrics webview panels when command is executed', ()=> {
+			test('should create nextFlow webview panels when command is executed', ()=> {
 				activate(context);
 
 				const commandCallback = registeredCommands['nextFlow.start'];
@@ -99,9 +102,39 @@ describe ('NextFlow Extension Test', () => {
 					expect.objectContaining({enableScripts: true, retainContextWhenHidden: true})
 				);
 			});
-			// test('should call correct file path', () => {
-			// 	expect(asWebviewUriMock.mock.calls.length).toBe(1)
-			// });
+			test('should create metric webview panels when command is executed', async ()=> {
+				context.subscriptions.push(
+					vscode.commands.registerCommand('openMetricsPanel', () => {
+					  vscode.window.createWebviewPanel(
+						'metrics',
+						'NextFlow Metrics',
+						vscode.ViewColumn.Two,
+						{ enableScripts: true, retainContextWhenHidden: true }
+					  );
+					})
+				  );
+
+				activate(context);
+				// console.log(context.subscriptions[1].dispose);
 				
+				// Mock createWebviewPanel
+				const createWebviewPanelSpy = jest.spyOn(vscode.window, 'createWebviewPanel');
+
+				// Execute the command
+				await vscode.commands.executeCommand('openMetricsPanel');
+			
+				expect(createWebviewPanelSpy).toHaveBeenCalledTimes(1);
+				expect(createWebviewPanelSpy).toHaveBeenCalledWith(
+					'metrics',
+					'NextFlow Metrics',
+					vscode.ViewColumn.Two,
+					expect.objectContaining({ enableScripts: true, retainContextWhenHidden: true })
+				);
+					
+					// test('should call correct file path', () => {
+					// 	expect(asWebviewUriMock.mock.calls.length).toBe(1)
+					// });
+				
+			});	
 	});
 });
