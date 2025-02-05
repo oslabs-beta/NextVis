@@ -37,7 +37,7 @@ describe('Parsing script', () => {
     // const input = mockFilePath;
     // console.log('mockFilePath', input);
     const result = await parsingScript(mockFilePath);
-    console.log('result', result);
+    // console.log('result', result);
     expect(result).toEqual(mockFinalObject);
   });
 });

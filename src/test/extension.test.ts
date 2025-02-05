@@ -1,8 +1,5 @@
-// import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { activate, deactivate } from '../extension';
-import * as path from 'path';
-import * as extension from '../extension';
+import { activate } from '../extension';
 
 let registeredCommands: { [key: string]: Function } = {};
 
