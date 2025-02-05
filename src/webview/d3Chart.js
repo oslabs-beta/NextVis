@@ -12,6 +12,7 @@ console.log(root2)
 
 
 console.log(diagonal.x.prototype);
+
 const createChart = (data) => {
   const width = 1000;
   const marginTop = 30;

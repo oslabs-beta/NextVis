@@ -1,4 +1,4 @@
-import createChart from '../webview/d3Chart';
+import {createChart} from '../webview/d3Chart.js';
 // import * as d3 from 'd3';
 // const createChart = require('../webview/d3Chart.js');
 // const d3 = require('d3');
