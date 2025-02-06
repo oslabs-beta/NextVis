@@ -2,7 +2,7 @@ import * as d3 from 'd3';
 
 let showMatchers = false;
 
-const createChart = (data) => {
+export default function createChart (data) {
   const width = 1000;
   const marginTop = 30;
   const marginRight = 30;
@@ -331,5 +331,3 @@ document.getElementById('showMatchers').addEventListener('change', (event) => {
   showMatchers = event.target.checked;
   updateChart();
 });
-
-export default createChart;

@@ -80,6 +80,10 @@
       "ts",
       "js"
     ],
+    "moduleNameMapper": {
+      "d3": "<rootDir>/__mocks__/d3.js",
+      "^d3-(.*)$": "<rootDir>/node_modules/d3-$1/dist/d3-$1.min.js"
+    },
     "transform": {
       "^.+\\.ts$": [
         "ts-jest",
@@ -88,6 +92,10 @@
         }
       ]
     },
+    "transformIgnorePatterns": [
+      "__mocks__",
+      "node_modules/(?!(d3)/)"
+    ],
     "testPathIgnorePatterns": [
       "/node_modules/",
       "/dist/",
