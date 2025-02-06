@@ -1,22 +1,12 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import * as path from 'path';
 import parsingScript from './webview/parsingScript';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-  // Use the console to output diagnostic information (console.log) and errors (console.error)
-  // This line of code will only be executed once when your extension is activated
-  console.log('Congratulations, your extension "nextFlow" is now active!');
 
-  // The command has been defined in the package.json file
-  // Now provide the implementation of the command with registerCommand
-  // The commandId parameter must match the command field in package.json
-  const d3 = vscode.commands.registerCommand('nextFlow.start', async () => {
+  const d3 = vscode.commands.registerCommand('NextFlow.start', async () => {
     const panel = vscode.window.createWebviewPanel(
-      'nextFlow',
+      'NextFlow',
       'NextFlow',
       vscode.ViewColumn.One,
       {
@@ -43,26 +33,17 @@ export function activate(context: vscode.ExtensionContext) {
               TypeScript: ['ts'],
             },
           };
-          // console.log(message.text);
           const fileUri = await vscode.window.showOpenDialog(options);
-          // console.log('fileUri: ', fileUri);
           if (fileUri && fileUri[0]) {
             const filePath = fileUri[0].fsPath;
-            // console.log('filePath in extension.ts: ', filePath);
             try {
               const startCpu = process.cpuUsage();
               const startMemory = process.memoryUsage();
-              // console.log('start', startCpu, startMemory);
 
               const flare = await parsingScript(filePath);
 
               const endCpu = process.cpuUsage(startCpu);
               const endMemory = process.memoryUsage();
-              // console.log(
-              //   'Difference time from start to end',
-              //   endCpu,
-              //   endMemory
-              // );
 
               const cpuUsage = {
                 user: endCpu.user,
@@ -93,24 +74,8 @@ export function activate(context: vscode.ExtensionContext) {
                 },
               };
 
-              // const flare = {
-              //   name: "app",
-              //   children: [
-              //     {
-              //       name: "/home",
-              //       children: [{ name: "/about",
-              //         children:[{ name: ":path*", children: [{name: ":/a"}, {name: ":/b"}, {name: ":/c"}] }]
-              //         },
-              //     { name: "/order", children: [{ name: '/order/:id', children: [{ name: ':item'}]}, { name: ':item' }]}]
-              //     },
-              //     { name: "/dashboard",
-              //       children:[{ name: "/dashboard/user", children: [{name: "/dashboard/user/settings"}, {name: "/dashboard/user/config"}] }]
-              //       }
-              //   ],
-              // };
-              // console.log('flare in extension.ts: ', flare);
               const baseDir = path.dirname(filePath);
-              // console.log('baseDir: ', baseDir);
+
               const compName = path.parse(filePath).base;
               panel.webview.postMessage({
                 command: 'filePicked',
@@ -126,9 +91,7 @@ export function activate(context: vscode.ExtensionContext) {
           break;
 
         case 'openMetricsPanel':
-          // if (metricsData) {
 
-          // }
           const metricsPanel = vscode.window.createWebviewPanel(
             'metrics',
             'NextFlow Metrics',
@@ -283,5 +246,4 @@ function getWebviewContent(uri: vscode.Uri) {
       </html>`;
 }
 
-// This method is called when your extension is deactivated
 export function deactivate() {}

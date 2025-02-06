@@ -55,12 +55,10 @@ const parsingScript = async (
     // given the array, iterate through each object, this will be a new node everytime\
     const rootMiddlewareFilePath = arrayOfFinalExports[0].file;
     let rootCutPath = path.parse(rootMiddlewareFilePath).base;
-    console.log('rootCutPath: ', rootCutPath);
-    console.log('typeof rootCutPath: ', typeof rootCutPath);
+
     arrayOfFinalExports.forEach((object) => {
       // lets cut the file path and include only the last two /s
       let cutPath = path.parse(object.file).base;
-      // console.log('cutPath: ', cutPath);
 
       // if finalObject is empty then the first iteration is the intial one and this is the root path
       if (finalObject.name === '' && cutPath === rootCutPath) {
@@ -165,7 +163,6 @@ const parsingScript = async (
         }
       }
     });
-    console.log('finalObject from finalObjectCreator: ', finalObject);
     return finalObject;
   };
 

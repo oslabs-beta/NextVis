@@ -1,8 +1,8 @@
 {
-  "name": "nextFlow",
-  "displayName": "nextFlow",
-  "description": "next.js middleware visualizer",
-  "version": "0.0.1",
+  "name": "NextFlow",
+  "displayName": "NextFlow",
+  "description": "Next.js middleware visualizer",
+  "version": "1.0.0",
   "engines": {
     "vscode": "^1.92.2"
   },
@@ -14,19 +14,9 @@
   "contributes": {
     "commands": [
       {
-        "command": "nextFlow.helloWorld",
-        "title": "Hello World",
-        "category": "Testing"
-      },
-      {
-        "command": "catCoding.start",
-        "title": "Start a new cat coding session",
-        "category": "Cat Coding"
-      },
-      {
-        "command": "nextFlow.start",
+        "command": "NextFlow.start",
         "title": "Display middleware dendrogram",
-        "category": "nextFlow"
+        "category": "NextFlow"
       }
     ]
   },

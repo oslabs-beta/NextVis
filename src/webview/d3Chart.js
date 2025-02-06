@@ -8,10 +8,6 @@ const diagonal = d3
 .y((d) => d.x);
 
 const root2 = d3.hierarchy
-console.log(root2)
-
-
-console.log(diagonal.x.prototype);
 
 const createChart = (data) => {
   const width = 1000;
@@ -114,7 +110,7 @@ const createChart = (data) => {
           .attr('x', 20)
           .attr('y', 10)
           .attr('stroke', 'white')
-          .text(matcher); // parse from script --> matcher or conditional
+          .text(`Matcher: ${matcher}`); // parse from script --> matcher or conditional
 
         let info2 = g
           .append('text')
@@ -122,7 +118,7 @@ const createChart = (data) => {
           .attr('x', 20)
           .attr('y', 20)
           .attr('stroke', 'white')
-          .text(type);
+          .text(`Type: ${type}`);
       })
       .on('mouseout', function () {
         d3.select(this).selectAll('text.info', 'text.info2').remove();
@@ -141,15 +137,6 @@ const createChart = (data) => {
       .attr('height', 20)
       .attr('fill', (d) => (d._children ? '#982933' : '#4B8F8C'))
       .attr('stroke-width', 10);
-
-    // styles the node as a rectangle
-    // nodeEnter.append("rect")
-    //   .attr("x", -20)
-    //   .attr("y", -10)
-    //   .attr("width", 40)
-    //   .attr("height", 20)
-    //   .attr("fill", d => d._children ? "red" : "blue")
-    //   .attr("stroke-width", 10);
 
     // styles the text taken from data
     nodeEnter
@@ -260,7 +247,7 @@ metricsButton.style.borderRadius = '10px';
 
 const matcherLabel = document.createElement('label');
 matcherLabel.setAttribute('for', 'showMatchers');
-matcherLabel.textContent = 'Show matchers';
+matcherLabel.textContent = 'Show more information';
 
 const matcherCheckbox = document.createElement('input');
 matcherCheckbox.type = 'checkbox';
@@ -285,7 +272,6 @@ container.appendChild(chartContainer);
 container.appendChild(optionsContainer);
 
 loadButton.addEventListener('click', () => {
-  console.log('Load Middleware button clicked');
 
   vscode.postMessage({
     command: 'pickFile',
@@ -294,7 +280,6 @@ loadButton.addEventListener('click', () => {
 });
 
 metricsButton.addEventListener('click', () => {
-  console.log('Open Metrics button clicked');
 
   vscode.postMessage({
     command: 'openMetricsPanel',
@@ -304,32 +289,19 @@ metricsButton.addEventListener('click', () => {
 window.addEventListener('message', (event) => {
   const message = event.data; // The JSON data our extension sent
 
-  function getRandomColor() {
-    // random color on title
-    const letters = '0123456789ABCDEF';
-    let color = '#';
-    for (let i = 0; i < 6; i++) {
-      color += letters[Math.floor(Math.random() * 16)];
-    }
-    return color;
-  }
-
   switch (message.command) {
     case 'filePicked':
       document.getElementById(
         'middlewareFile'
       ).textContent = `Selected file: ${message.filePath}`;
-      // document.getElementById("middlewareFile").style.color = getRandomColor();
       if (message.flare) {
         const chart = document.getElementById('chart');
         chart.innerHTML = '';
 
         const dendrogram = createChart(message.flare);
-        console.log('message.flare: ', message.flare);
 
         chart.appendChild(dendrogram);
         title.textContent = `Middleware Tree for ${message.compName}`;
-        // title.style.color = getRandomColor(); // line 240
       } else {
         vscode.postMessage({
           command: 'alert',

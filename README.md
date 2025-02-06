@@ -18,32 +18,16 @@ NextFlow is a Next.js middleware visualizer for VS Code.
 
 Flow Diagram: Visualize middleware execution across different routes.
 
-Performance Metric Panel:
+Performance Metric Panel: 
 
 VS Code Integration: View middleware behavior directly in the editor.
 
 ## 📦 Installation
 
-### Clone this repository:
-
-```bash
-git clone https://github.com/oslabs-beta/NextFlow
-cd nextflow
-``` 
-### Install dependencies:
-```bash
-npm install
-```
- ### Build the extension:
-```bash
-npm run build
-```
-### Load it into VS Code:
-```bash
-Open VS Code.
-Go to Extensions (Ctrl + Shift + X).
-```
-Click on Load Extension and select the dist folder.
+1. Open VS Code.
+2. Go to the Extensions view (Ctrl+Shift+X).
+3. Search for "Reactive".
+4. Click Install.
 
 ## 🛠 Usage
 
@@ -56,6 +40,7 @@ Click on Load Extension and select the dist folder.
 ### How to contribute
 We welcome contributions! Feel free to submit issues and pull requests.
 
+-Go to https://github.com/oslabs-beta/NextFlow/<br>
 -Fork the project<br>
 -Create your feature branch (git checkout -b feature/AmazingFeature)<br>
 -Commit your changes (git commit -m 'Add some AmazingFeature')<br>
@@ -67,7 +52,7 @@ We welcome contributions! Feel free to submit issues and pull requests.
 #### Jun Inton - [Github](https://github.com/JunInton)
 #### Anthony Noyola - [Github](https://github.com/antwonasn)
 #### Sung Jung - [Github](https://github.com/sungguk85)
-#### Carolina Robinson - [Github](https://github.com/CaroSaFe)
+#### Carolina Robson - [Github](https://github.com/CaroSaFe)
 #### Brendan Hoskins - [Github](https://github.com/BrendanHoskins)
 
 ## 📬 Contact

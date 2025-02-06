@@ -71,7 +71,6 @@ describe ('NextFlow Extension Test', () => {
 		describe('activate', () => {
 			test('should register the nextFlow.start command',  () => {
 			  activate(context);
-			//   console.log(context);
 			  // Check that the 'nextFlow.start' command is registered
 			  expect(vscode.commands.registerCommand).toHaveBeenCalledWith(
 				'nextFlow.start',
@@ -112,7 +111,6 @@ describe ('NextFlow Extension Test', () => {
 				  );
 
 				activate(context);
-				// console.log(context.subscriptions[1].dispose);
 				
 				// Mock createWebviewPanel
 				const createWebviewPanelSpy = jest.spyOn(vscode.window, 'createWebviewPanel');
@@ -127,11 +125,6 @@ describe ('NextFlow Extension Test', () => {
 					vscode.ViewColumn.Two,
 					expect.objectContaining({ enableScripts: true, retainContextWhenHidden: true })
 				);
-					
-					// test('should call correct file path', () => {
-					// 	expect(asWebviewUriMock.mock.calls.length).toBe(1)
-					// });
-				
 			});	
 	});
 });
