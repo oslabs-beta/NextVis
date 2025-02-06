@@ -36,8 +36,8 @@ const createChart = (data) => {
     .create('svg')
     .attr('width', width)
     .attr('height', dx)
-    // .attr('viewBox', [-marginLeft, -marginTop, width, dx])
-    .attr('viewBox', [0, 0, 1000, 1000])
+    .attr('viewBox', [-marginLeft, -marginTop, width, dx])
+    // .attr('viewBox', [0, 0, 1000, 1000])
     .attr(
       'style',
       'max-width: 100%; height: auto; font: 10px sans-serif; user-select: none;'
@@ -262,7 +262,7 @@ fileContainer.appendChild(loadButton);
 
 const chartContainer = document.createElement('div');
 chartContainer.id = 'chart';
-chartContainer.style.padding = '20px 0px 20px 0px'; // spacing
+chartContainer.style.padding = '30px 0px 30px 0px'; // spacing
 
 const optionsContainer = document.createElement('div');
 optionsContainer.style.padding = '20px 0px 20px 0px';
