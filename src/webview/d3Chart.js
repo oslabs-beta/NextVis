@@ -36,7 +36,8 @@ const createChart = (data) => {
     .create('svg')
     .attr('width', width)
     .attr('height', dx)
-    .attr('viewBox', [-marginLeft, -marginTop, width, dx])
+    // .attr('viewBox', [-marginLeft, -marginTop, width, dx])
+    .attr('viewBox', [0, 0, 1000, 1000])
     .attr(
       'style',
       'max-width: 100%; height: auto; font: 10px sans-serif; user-select: none;'
@@ -99,7 +100,7 @@ const createChart = (data) => {
 
         const matcher =
           d.data.matcher && d.data.matcher.length
-            ? d.data.matcher.join(', ')
+            ? `Matcher: ${d.data.matcher.join(', ')}`
             : 'No matcher in this middleware';
 
         const type = d.data.type;
@@ -108,15 +109,15 @@ const createChart = (data) => {
           .append('text')
           .classed('info', true)
           .attr('x', 20)
-          .attr('y', 10)
+          .attr('y', 15)
           .attr('stroke', 'white')
-          .text(`Matcher: ${matcher}`); // parse from script --> matcher or conditional
+          .text(matcher); // parse from script --> matcher or conditional
 
         let info2 = g
           .append('text')
           .classed('info', true)
           .attr('x', 20)
-          .attr('y', 20)
+          .attr('y', 25)
           .attr('stroke', 'white')
           .text(`Type: ${type}`);
       })
@@ -132,10 +133,10 @@ const createChart = (data) => {
     // styles the node as a circle
     nodeEnter
       .append('circle')
-      .attr('r', 10)
+      .attr('r', (d) => (d.depth === 0 ? 15 : 12))
       .attr('width', 40)
       .attr('height', 20)
-      .attr('fill', (d) => (d._children ? '#982933' : '#4B8F8C'))
+      .attr('fill', (d) => (d.depth === 0 ? '#982933' : d._children ? '#484D6D' : '#4B8F8C'))
       .attr('stroke-width', 10);
 
     // styles the text taken from data
@@ -145,7 +146,7 @@ const createChart = (data) => {
       // changes x axis position of text depending on if node has children
       // .attr("x", d => d._children ? -6 : 6)
       // .attr("text-anchor", d => d._children ? "end" : "start")
-      .attr('y', -20)
+      .attr('y', -25)
       .attr('x', -20)
       .attr('font-size', 15)
       .text((d) => d.data.name)
@@ -245,6 +246,8 @@ metricsButton.textContent = 'Open Metrics Panel';
 metricsButton.style.margin = '10px 0px 0px 0px';
 metricsButton.style.borderRadius = '10px';
 
+
+
 const matcherLabel = document.createElement('label');
 matcherLabel.setAttribute('for', 'showMatchers');
 matcherLabel.textContent = 'Show more information';
@@ -259,9 +262,10 @@ fileContainer.appendChild(loadButton);
 
 const chartContainer = document.createElement('div');
 chartContainer.id = 'chart';
-chartContainer.style.padding = '20px 0px 0px'; // spacing
+chartContainer.style.padding = '20px 0px 20px 0px'; // spacing
 
 const optionsContainer = document.createElement('div');
+optionsContainer.style.padding = '20px 0px 20px 0px';
 optionsContainer.appendChild(matcherCheckbox);
 optionsContainer.appendChild(matcherLabel);
 

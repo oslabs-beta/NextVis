@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import parsingScript from './webview/parsingScript';
 
+let metricsPanel: vscode.WebviewPanel | undefined;
+
 export function activate(context: vscode.ExtensionContext) {
 
   const d3 = vscode.commands.registerCommand('NextFlow.start', async () => {
@@ -91,18 +93,58 @@ export function activate(context: vscode.ExtensionContext) {
           break;
 
         case 'openMetricsPanel':
+          if (metricsPanel) {
+            metricsPanel.reveal(vscode.ViewColumn.Two);
+          } else {
+            metricsPanel = vscode.window.createWebviewPanel(
+              'metrics',
+              'NextFlow Metrics',
+              vscode.ViewColumn.Two,
+              {
+                enableScripts: true,
+                retainContextWhenHidden: true,
+              }
+            );
 
-          const metricsPanel = vscode.window.createWebviewPanel(
-            'metrics',
-            'NextFlow Metrics',
-            vscode.ViewColumn.Two,
-            {
-              enableScripts: true,
-              retainContextWhenHidden: true,
-            }
-          );
+            metricsPanel.onDidDispose(() => {
+              metricsPanel = undefined;
+            });
 
-          metricsPanel.webview.html = `
+            metricsPanel.webview.html = getMetricsContent();
+
+            metricsPanel.webview.postMessage({
+              command: 'openMetricsPanel',
+              metrics: metricsData,
+            });
+          }
+          break;
+
+        case 'alert':
+          vscode.window.showErrorMessage(message.text);
+          break;
+      }
+    });
+  });
+
+  context.subscriptions.push(d3);
+}
+
+function getWebviewContent(uri: vscode.Uri) {
+  return `<!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Middleware Dendrogram</title>
+      </head>
+      <body>
+        <script src="${uri}"></script>
+      </body>
+      </html>`;
+}
+
+function getMetricsContent(): string {
+ return `
             <!DOCTYPE html>
             <html lang="en">
             <head>
@@ -215,35 +257,6 @@ export function activate(context: vscode.ExtensionContext) {
             </body>
             </html>
             `;
-
-          metricsPanel.webview.postMessage({
-            command: 'openMetricsPanel',
-            metrics: metricsData,
-          });
-          break;
-
-        case 'alert':
-          vscode.window.showErrorMessage(message.text);
-          break;
-      }
-    });
-  });
-
-  context.subscriptions.push(d3);
-}
-
-function getWebviewContent(uri: vscode.Uri) {
-  return `<!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Middleware Dendrogram</title>
-      </head>
-      <body>
-        <script src="${uri}"></script>
-      </body>
-      </html>`;
 }
 
 export function deactivate() {}
