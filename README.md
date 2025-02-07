@@ -1,71 +1,65 @@
-# nextFlow README
+<h1 align="center">
+NextVis
+</h1>
+<p>
+NextVis is a VS Code extension for visualizing Next.js middleware. 
+</p>
 
-This is the README for your extension "nextFlow". After writing up a brief description, we recommend including the following sections.
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![VSCode](https://img.shields.io/badge/VSCode-0078D4?style=for-the-badge&logo=visual%20studio%20code&logoColor=white)
+![NextJS](https://img.shields.io/badge/next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
+![Node](https://img.shields.io/badge/-node-339933?style=for-the-badge&logo=node.js&logoColor=white)
+![Jest](https://img.shields.io/badge/-jest-C21325?style=for-the-badge&logo=jest&logoColor=white)
 
-## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+## 🚀 Features
 
-For example if there is an image subfolder under your extension project workspace:
+Flow Diagram: Visualize middleware execution across different routes.
 
-\!\[feature X\]\(images/feature-x.png\)
+Performance Metrics Panel: Display resources used by the VS Code extension.
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+VS Code Integration: View middleware behavior directly in the editor.
 
-## Requirements
+## 📦 Installation
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+1. Open VS Code.
+2. Go to the Extensions view (Ctrl+Shift+X).
+3. Search for "NextVis".
+4. Click Install.
 
-## Extension Settings
+## 🛠 Usage
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+1. Run the NextVis command in the Command Palette (NextVis: Start Visualization).
+2. Click on Load Middleware File and navigate to your Next.js project's main middleware file.
+3. Inspect middleware execution flow in the visual panel.
+4. Check the performance panel for CPU & RAM usage.
 
-For example:
+## 🤝 Contributing
+### How to contribute
+We welcome contributions! Feel free to submit issues and pull requests.
 
-This extension contributes the following settings:
+-Go to https://github.com/oslabs-beta/NextVis/<br>
+-Fork the project<br>
+-Create your feature branch (git checkout -b feature/AmazingFeature)<br>
+-Commit your changes (git commit -m 'Add some AmazingFeature')<br>
+-Push to the branch (git push origin feature/AmazingFeature)<br>
+-Open a pull request (from feature/AmazingFeature to dev)<br>
+-Create a new issue on GitHub<br>
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+## Contributors
+#### Jun Inton - [Github](https://github.com/JunInton)
+#### Anthony Noyola - [Github](https://github.com/antwonasn)
+#### Sung Jung - [Github](https://github.com/sungguk85)
+#### Carolina Robson - [Github](https://github.com/CaroSaFe)
+#### Brendan Hoskins - [Github](https://github.com/BrendanHoskins)
 
-## Known Issues
+## 📬 Contact
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+For questions or suggestions, open an issue or reach out on GitHub.
 
-## Release Notes
+## 📄 License
 
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
+MIT License. See LICENSE for details.
 
 **Enjoy!**
