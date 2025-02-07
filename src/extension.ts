@@ -6,10 +6,10 @@ let metricsPanel: vscode.WebviewPanel | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
 
-  const d3 = vscode.commands.registerCommand('NextFlow.start', async () => {
+  const d3 = vscode.commands.registerCommand('NextVis.start', async () => {
     const panel = vscode.window.createWebviewPanel(
-      'NextFlow',
-      'NextFlow',
+      'NextVis',
+      'NextVis',
       vscode.ViewColumn.One,
       {
         enableScripts: true,
@@ -98,7 +98,7 @@ export function activate(context: vscode.ExtensionContext) {
           } else {
             metricsPanel = vscode.window.createWebviewPanel(
               'metrics',
-              'NextFlow Metrics',
+              'NextVis Metrics',
               vscode.ViewColumn.Two,
               {
                 enableScripts: true,
@@ -193,7 +193,7 @@ function getMetricsContent(): string {
             </head>
             <body>
               <div class="metrics-container">
-                <h1>NextFlow Metrics</h1>
+                <h1>NextVis Metrics</h1>
                 
                 <div class="metric-section">
                   <h2>CPU Usage</h2>

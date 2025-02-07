@@ -1,8 +1,12 @@
 # Change Log
 
-All notable changes to the "NextFlow" extension will be documented in this file.
+All notable changes to the "NextVis" extension will be documented in this file.
 
 - Initial release
+
+[0.2.4] - February 6, 2025
+
+Changed branding
 
 [0.2.3] - February 5, 2025
 

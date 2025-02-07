@@ -1,6 +1,6 @@
 {
-  "name": "NextFlow",
-  "displayName": "NextFlow",
+  "name": "NextVis",
+  "displayName": "NextVis",
   "description": "Next.js middleware visualizer",
   "version": "1.0.0",
   "engines": {
@@ -14,9 +14,9 @@
   "contributes": {
     "commands": [
       {
-        "command": "NextFlow.start",
+        "command": "NextVis.start",
         "title": "Display middleware dendrogram",
-        "category": "NextFlow"
+        "category": "NextVis"
       }
     ]
   },
