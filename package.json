@@ -9,7 +9,13 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onCommand:nextFlow.startMonitoredDevServer",
+    "onCommand:nextFlow.start"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
@@ -26,6 +32,11 @@
       {
         "command": "nextFlow.start",
         "title": "Display middleware dendrogram",
+        "category": "nextFlow"
+      },
+      {
+        "command": "nextFlow.startMonitoredDevServer",
+        "title": "Start Monitored Dev Server",
         "category": "nextFlow"
       }
     ]
@@ -50,7 +61,7 @@
     "@types/babel__traverse": "^7.20.6",
     "@types/jest": "^29.5.14",
     "@types/mocha": "^10.0.9",
-    "@types/node": "20.x",
+    "@types/node": "^22.13.5",
     "@types/vscode": "^1.95.0",
     "@typescript-eslint/eslint-plugin": "^8.10.0",
     "@typescript-eslint/parser": "^8.7.0",
