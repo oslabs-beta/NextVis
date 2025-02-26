@@ -20,7 +20,7 @@ const createChart = (data) => {
     errorMessage.style.fontSize = "x-large";
     errorMessage.style.color = "red";
     errorMessage.style.padding = "0px 0px 20px 0px";
-    errorMessage.innerHTML = 'No middleware in file';
+    errorMessage.innerHTML = 'No middleware in the provided file';
 
     const verifyMessage = document.createElement('div');
     verifyMessage.style.fontSize = "large";

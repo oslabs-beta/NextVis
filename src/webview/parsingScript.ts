@@ -53,7 +53,9 @@ const parsingScript = async (
     finalObject: FinalObject = { name: '', children: [], type: 'file' }
   ): FinalObject => {
 
-    if (arrayOfFinalExports.length === 1) {
+    // edge case: file does not contain a matcher or does not specify any paths
+    if ((arrayOfFinalExports.length === 1 && !arrayOfFinalExports[0].path) ||
+      (arrayOfFinalExports.length === 1 && !arrayOfFinalExports[0].matcher)) {
       return { name: path.parse(filePath).base , children: [], type: 'file' };
     }
 
