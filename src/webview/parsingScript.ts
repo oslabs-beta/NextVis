@@ -52,6 +52,11 @@ const parsingScript = async (
     arrayOfFinalExports: FileObject[],
     finalObject: FinalObject = { name: '', children: [], type: 'file' }
   ): FinalObject => {
+
+    if (arrayOfFinalExports.length === 1) {
+      return { name: path.parse(filePath).base , children: [], type: 'file' };
+    }
+
     // given the array, iterate through each object, this will be a new node everytime\
     const rootMiddlewareFilePath = arrayOfFinalExports[0].file;
     let rootCutPath = path.parse(rootMiddlewareFilePath).base;
@@ -326,6 +331,9 @@ const parsingScript = async (
       })
     );
 
+    // console.log('imports: ', imports);
+    // console.log('exports: ', exports);
+
     const filteredExports = finalExports.filter(
       (file) => file.name !== 'config'
     );
@@ -335,11 +343,14 @@ const parsingScript = async (
         await pairMatcherWithFile(file);
       })
     );
-
     return filteredExports;
   };
 
   const filteredExports = await analyzeMiddleware(filePath);
+
+  if (filteredExports.length === 0) {
+    return finalObjectCreator([{ name: '', file: filePath }]);
+  }
   return finalObjectCreator(filteredExports);
 };
 
