@@ -2,13 +2,6 @@ import * as d3 from 'd3';
 
 let showMatchers = false;
 
-const diagonal = d3
-.linkHorizontal()
-.x((d) => d.y)
-.y((d) => d.x);
-
-const root2 = d3.hierarchy
-
 const createChart = (data) => {
   const width = 1000;
   const marginTop = 30;
@@ -20,6 +13,24 @@ const createChart = (data) => {
   // (dx is a height, and dy a width). This because the tree must be viewed with the root at the
   // “bottom”, in the data domain. The width of a column is based on the tree’s height.
   const root = d3.hierarchy(data);
+  console.log('root', root);
+
+  if (root.depth === 0 && root.height === 0) {
+    const errorMessage = document.createElement('div');
+    errorMessage.style.fontSize = "x-large";
+    errorMessage.style.color = "red";
+    errorMessage.style.padding = "0px 0px 20px 0px";
+    errorMessage.innerHTML = 'No middleware in the provided file';
+
+    const verifyMessage = document.createElement('div');
+    verifyMessage.style.fontSize = "large";
+    verifyMessage.style.color = "red";
+    verifyMessage.style.padding = "0px 0px 50px 0px";
+    verifyMessage.innerHTML = 'Please verify that you are providing your main middleware file';
+
+    chartContainer.appendChild(errorMessage);
+    chartContainer.appendChild(verifyMessage);
+  }
 
   const dx = 100;
   const dy = (width - marginRight - marginLeft) / (1 + root.height);

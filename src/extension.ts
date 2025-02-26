@@ -43,6 +43,7 @@ export function activate(context: vscode.ExtensionContext) {
               const startMemory = process.memoryUsage();
 
               const flare = await parsingScript(filePath);
+              console.log('flare: ', flare);
 
               const endCpu = process.cpuUsage(startCpu);
               const endMemory = process.memoryUsage();

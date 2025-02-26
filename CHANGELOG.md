@@ -2,6 +2,10 @@
 
 All notable changes to the "NextVis" extension will be documented in this file.
 
+[1.0.2] - February 25, 2025
+
+Added user feedback for files with no middleware
+
 [1.0.0] - February 8, 2025
 
 Initial release
