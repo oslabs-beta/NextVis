@@ -1,23 +1,15 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import * as path from 'path';
 import parsingScript from './webview/parsingScript';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
-  // Use the console to output diagnostic information (console.log) and errors (console.error)
-  // This line of code will only be executed once when your extension is activated
-  console.log('Congratulations, your extension "nextFlow" is now active!');
+let metricsPanel: vscode.WebviewPanel | undefined;
 
-  // The command has been defined in the package.json file
-  // Now provide the implementation of the command with registerCommand
-  // The commandId parameter must match the command field in package.json
-  const d3 = vscode.commands.registerCommand('nextFlow.start', async () => {
+export function activate(context: vscode.ExtensionContext) {
+
+  const d3 = vscode.commands.registerCommand('NextVis.start', async () => {
     const panel = vscode.window.createWebviewPanel(
-      'nextFlow',
-      'NextFlow',
+      'NextVis',
+      'NextVis',
       vscode.ViewColumn.One,
       {
         enableScripts: true,
@@ -43,26 +35,18 @@ export function activate(context: vscode.ExtensionContext) {
               TypeScript: ['ts'],
             },
           };
-          // console.log(message.text);
           const fileUri = await vscode.window.showOpenDialog(options);
-          // console.log('fileUri: ', fileUri);
           if (fileUri && fileUri[0]) {
             const filePath = fileUri[0].fsPath;
-            // console.log('filePath in extension.ts: ', filePath);
             try {
               const startCpu = process.cpuUsage();
               const startMemory = process.memoryUsage();
-              // console.log('start', startCpu, startMemory);
 
               const flare = await parsingScript(filePath);
+              console.log('flare: ', flare);
 
               const endCpu = process.cpuUsage(startCpu);
               const endMemory = process.memoryUsage();
-              // console.log(
-              //   'Difference time from start to end',
-              //   endCpu,
-              //   endMemory
-              // );
 
               const cpuUsage = {
                 user: endCpu.user,
@@ -93,24 +77,8 @@ export function activate(context: vscode.ExtensionContext) {
                 },
               };
 
-              // const flare = {
-              //   name: "app",
-              //   children: [
-              //     {
-              //       name: "/home",
-              //       children: [{ name: "/about",
-              //         children:[{ name: ":path*", children: [{name: ":/a"}, {name: ":/b"}, {name: ":/c"}] }]
-              //         },
-              //     { name: "/order", children: [{ name: '/order/:id', children: [{ name: ':item'}]}, { name: ':item' }]}]
-              //     },
-              //     { name: "/dashboard",
-              //       children:[{ name: "/dashboard/user", children: [{name: "/dashboard/user/settings"}, {name: "/dashboard/user/config"}] }]
-              //       }
-              //   ],
-              // };
-              // console.log('flare in extension.ts: ', flare);
               const baseDir = path.dirname(filePath);
-              // console.log('baseDir: ', baseDir);
+
               const compName = path.parse(filePath).base;
               panel.webview.postMessage({
                 command: 'filePicked',
@@ -126,20 +94,58 @@ export function activate(context: vscode.ExtensionContext) {
           break;
 
         case 'openMetricsPanel':
-          // if (metricsData) {
+          if (metricsPanel) {
+            metricsPanel.reveal(vscode.ViewColumn.Two);
+          } else {
+            metricsPanel = vscode.window.createWebviewPanel(
+              'metrics',
+              'NextVis Metrics',
+              vscode.ViewColumn.Two,
+              {
+                enableScripts: true,
+                retainContextWhenHidden: true,
+              }
+            );
 
-          // }
-          const metricsPanel = vscode.window.createWebviewPanel(
-            'metrics',
-            'NextFlow Metrics',
-            vscode.ViewColumn.Two,
-            {
-              enableScripts: true,
-              retainContextWhenHidden: true,
-            }
-          );
+            metricsPanel.onDidDispose(() => {
+              metricsPanel = undefined;
+            });
 
-          metricsPanel.webview.html = `
+            metricsPanel.webview.html = getMetricsContent();
+
+            metricsPanel.webview.postMessage({
+              command: 'openMetricsPanel',
+              metrics: metricsData,
+            });
+          }
+          break;
+
+        case 'alert':
+          vscode.window.showErrorMessage(message.text);
+          break;
+      }
+    });
+  });
+
+  context.subscriptions.push(d3);
+}
+
+function getWebviewContent(uri: vscode.Uri) {
+  return `<!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Middleware Dendrogram</title>
+      </head>
+      <body>
+        <script src="${uri}"></script>
+      </body>
+      </html>`;
+}
+
+function getMetricsContent(): string {
+ return `
             <!DOCTYPE html>
             <html lang="en">
             <head>
@@ -188,7 +194,7 @@ export function activate(context: vscode.ExtensionContext) {
             </head>
             <body>
               <div class="metrics-container">
-                <h1>NextFlow Metrics</h1>
+                <h1>NextVis Metrics</h1>
                 
                 <div class="metric-section">
                   <h2>CPU Usage</h2>
@@ -252,36 +258,6 @@ export function activate(context: vscode.ExtensionContext) {
             </body>
             </html>
             `;
-
-          metricsPanel.webview.postMessage({
-            command: 'openMetricsPanel',
-            metrics: metricsData,
-          });
-          break;
-
-        case 'alert':
-          vscode.window.showErrorMessage(message.text);
-          break;
-      }
-    });
-  });
-
-  context.subscriptions.push(d3);
 }
 
-function getWebviewContent(uri: vscode.Uri) {
-  return `<!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Middleware Dendrogram</title>
-      </head>
-      <body>
-        <script src="${uri}"></script>
-      </body>
-      </html>`;
-}
-
-// This method is called when your extension is deactivated
 export function deactivate() {}

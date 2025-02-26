@@ -52,15 +52,20 @@ const parsingScript = async (
     arrayOfFinalExports: FileObject[],
     finalObject: FinalObject = { name: '', children: [], type: 'file' }
   ): FinalObject => {
+
+    // edge case: file does not contain a matcher or does not specify any paths
+    if ((arrayOfFinalExports.length === 1 && !arrayOfFinalExports[0].path) ||
+      (arrayOfFinalExports.length === 1 && !arrayOfFinalExports[0].matcher)) {
+      return { name: path.parse(filePath).base , children: [], type: 'file' };
+    }
+
     // given the array, iterate through each object, this will be a new node everytime\
     const rootMiddlewareFilePath = arrayOfFinalExports[0].file;
     let rootCutPath = path.parse(rootMiddlewareFilePath).base;
-    console.log('rootCutPath: ', rootCutPath);
-    console.log('typeof rootCutPath: ', typeof rootCutPath);
+
     arrayOfFinalExports.forEach((object) => {
       // lets cut the file path and include only the last two /s
       let cutPath = path.parse(object.file).base;
-      // console.log('cutPath: ', cutPath);
 
       // if finalObject is empty then the first iteration is the intial one and this is the root path
       if (finalObject.name === '' && cutPath === rootCutPath) {
@@ -165,7 +170,6 @@ const parsingScript = async (
         }
       }
     });
-    console.log('finalObject from finalObjectCreator: ', finalObject);
     return finalObject;
   };
 
@@ -329,6 +333,9 @@ const parsingScript = async (
       })
     );
 
+    // console.log('imports: ', imports);
+    // console.log('exports: ', exports);
+
     const filteredExports = finalExports.filter(
       (file) => file.name !== 'config'
     );
@@ -338,11 +345,14 @@ const parsingScript = async (
         await pairMatcherWithFile(file);
       })
     );
-
     return filteredExports;
   };
 
   const filteredExports = await analyzeMiddleware(filePath);
+
+  if (filteredExports.length === 0) {
+    return finalObjectCreator([{ name: '', file: filePath }]);
+  }
   return finalObjectCreator(filteredExports);
 };
 

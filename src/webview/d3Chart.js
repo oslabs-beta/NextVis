@@ -2,17 +2,6 @@ import * as d3 from 'd3';
 
 let showMatchers = false;
 
-const diagonal = d3
-.linkHorizontal()
-.x((d) => d.y)
-.y((d) => d.x);
-
-const root2 = d3.hierarchy
-console.log(root2)
-
-
-console.log(diagonal.x.prototype);
-
 const createChart = (data) => {
   const width = 1000;
   const marginTop = 30;
@@ -24,6 +13,24 @@ const createChart = (data) => {
   // (dx is a height, and dy a width). This because the tree must be viewed with the root at the
   // “bottom”, in the data domain. The width of a column is based on the tree’s height.
   const root = d3.hierarchy(data);
+  console.log('root', root);
+
+  if (root.depth === 0 && root.height === 0) {
+    const errorMessage = document.createElement('div');
+    errorMessage.style.fontSize = "x-large";
+    errorMessage.style.color = "red";
+    errorMessage.style.padding = "0px 0px 20px 0px";
+    errorMessage.innerHTML = 'No middleware in the provided file';
+
+    const verifyMessage = document.createElement('div');
+    verifyMessage.style.fontSize = "large";
+    verifyMessage.style.color = "red";
+    verifyMessage.style.padding = "0px 0px 50px 0px";
+    verifyMessage.innerHTML = 'Please verify that you are providing your main middleware file';
+
+    chartContainer.appendChild(errorMessage);
+    chartContainer.appendChild(verifyMessage);
+  }
 
   const dx = 100;
   const dy = (width - marginRight - marginLeft) / (1 + root.height);
@@ -41,6 +48,7 @@ const createChart = (data) => {
     .attr('width', width)
     .attr('height', dx)
     .attr('viewBox', [-marginLeft, -marginTop, width, dx])
+    // .attr('viewBox', [0, 0, 1000, 1000])
     .attr(
       'style',
       'max-width: 100%; height: auto; font: 10px sans-serif; user-select: none;'
@@ -103,7 +111,7 @@ const createChart = (data) => {
 
         const matcher =
           d.data.matcher && d.data.matcher.length
-            ? d.data.matcher.join(', ')
+            ? `Matcher: ${d.data.matcher.join(', ')}`
             : 'No matcher in this middleware';
 
         const type = d.data.type;
@@ -112,7 +120,7 @@ const createChart = (data) => {
           .append('text')
           .classed('info', true)
           .attr('x', 20)
-          .attr('y', 10)
+          .attr('y', 15)
           .attr('stroke', 'white')
           .text(matcher); // parse from script --> matcher or conditional
 
@@ -120,9 +128,9 @@ const createChart = (data) => {
           .append('text')
           .classed('info', true)
           .attr('x', 20)
-          .attr('y', 20)
+          .attr('y', 25)
           .attr('stroke', 'white')
-          .text(type);
+          .text(`Type: ${type}`);
       })
       .on('mouseout', function () {
         d3.select(this).selectAll('text.info', 'text.info2').remove();
@@ -136,20 +144,11 @@ const createChart = (data) => {
     // styles the node as a circle
     nodeEnter
       .append('circle')
-      .attr('r', 10)
+      .attr('r', (d) => (d.depth === 0 ? 15 : 12))
       .attr('width', 40)
       .attr('height', 20)
-      .attr('fill', (d) => (d._children ? '#982933' : '#4B8F8C'))
+      .attr('fill', (d) => (d.depth === 0 ? '#982933' : d._children ? '#484D6D' : '#4B8F8C'))
       .attr('stroke-width', 10);
-
-    // styles the node as a rectangle
-    // nodeEnter.append("rect")
-    //   .attr("x", -20)
-    //   .attr("y", -10)
-    //   .attr("width", 40)
-    //   .attr("height", 20)
-    //   .attr("fill", d => d._children ? "red" : "blue")
-    //   .attr("stroke-width", 10);
 
     // styles the text taken from data
     nodeEnter
@@ -158,7 +157,7 @@ const createChart = (data) => {
       // changes x axis position of text depending on if node has children
       // .attr("x", d => d._children ? -6 : 6)
       // .attr("text-anchor", d => d._children ? "end" : "start")
-      .attr('y', -20)
+      .attr('y', -25)
       .attr('x', -20)
       .attr('font-size', 15)
       .text((d) => d.data.name)
@@ -246,7 +245,7 @@ fileInput.id = 'middlewareFile';
 const loadButton = document.createElement('button');
 loadButton.type = 'button';
 loadButton.id = 'loadMiddleware';
-loadButton.textContent = 'Load Middleware Tree';
+loadButton.textContent = 'Load Middleware File';
 // loadButton.style.padding = '5px';
 loadButton.style.margin = '10px 0px 0px 0px'; // spacing
 loadButton.style.borderRadius = '10px'; // border radius
@@ -258,9 +257,11 @@ metricsButton.textContent = 'Open Metrics Panel';
 metricsButton.style.margin = '10px 0px 0px 0px';
 metricsButton.style.borderRadius = '10px';
 
+
+
 const matcherLabel = document.createElement('label');
 matcherLabel.setAttribute('for', 'showMatchers');
-matcherLabel.textContent = 'Show matchers';
+matcherLabel.textContent = 'Show more information';
 
 const matcherCheckbox = document.createElement('input');
 matcherCheckbox.type = 'checkbox';
@@ -272,9 +273,10 @@ fileContainer.appendChild(loadButton);
 
 const chartContainer = document.createElement('div');
 chartContainer.id = 'chart';
-chartContainer.style.padding = '20px 0px 0px'; // spacing
+chartContainer.style.padding = '30px 0px 30px 0px'; // spacing
 
 const optionsContainer = document.createElement('div');
+optionsContainer.style.padding = '20px 0px 20px 0px';
 optionsContainer.appendChild(matcherCheckbox);
 optionsContainer.appendChild(matcherLabel);
 
@@ -285,7 +287,6 @@ container.appendChild(chartContainer);
 container.appendChild(optionsContainer);
 
 loadButton.addEventListener('click', () => {
-  console.log('Load Middleware button clicked');
 
   vscode.postMessage({
     command: 'pickFile',
@@ -294,7 +295,6 @@ loadButton.addEventListener('click', () => {
 });
 
 metricsButton.addEventListener('click', () => {
-  console.log('Open Metrics button clicked');
 
   vscode.postMessage({
     command: 'openMetricsPanel',
@@ -304,32 +304,19 @@ metricsButton.addEventListener('click', () => {
 window.addEventListener('message', (event) => {
   const message = event.data; // The JSON data our extension sent
 
-  function getRandomColor() {
-    // random color on title
-    const letters = '0123456789ABCDEF';
-    let color = '#';
-    for (let i = 0; i < 6; i++) {
-      color += letters[Math.floor(Math.random() * 16)];
-    }
-    return color;
-  }
-
   switch (message.command) {
     case 'filePicked':
       document.getElementById(
         'middlewareFile'
       ).textContent = `Selected file: ${message.filePath}`;
-      // document.getElementById("middlewareFile").style.color = getRandomColor();
       if (message.flare) {
         const chart = document.getElementById('chart');
         chart.innerHTML = '';
 
         const dendrogram = createChart(message.flare);
-        console.log('message.flare: ', message.flare);
 
         chart.appendChild(dendrogram);
         title.textContent = `Middleware Tree for ${message.compName}`;
-        // title.style.color = getRandomColor(); // line 240
       } else {
         vscode.postMessage({
           command: 'alert',

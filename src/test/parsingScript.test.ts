@@ -34,10 +34,7 @@ jest.mock('fs', () => {
 
 describe('Parsing script', () => {
   test('should return a finalObject in the correct format for D3', async () => {
-    // const input = mockFilePath;
-    // console.log('mockFilePath', input);
     const result = await parsingScript(mockFilePath);
-    // console.log('result', result);
     expect(result).toEqual(mockFinalObject);
   });
 });

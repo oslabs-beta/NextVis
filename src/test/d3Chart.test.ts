@@ -1,7 +1,4 @@
 import {createChart} from '../webview/d3Chart.js';
-// import * as d3 from 'd3';
-// const createChart = require('../webview/d3Chart.js');
-// const d3 = require('d3');
 
 const mockFlareObject = {
   name: "app",
@@ -19,16 +16,12 @@ const mockFlareObject = {
   ],
 };
 
-// jest.mock('d3');
 
 describe('D3 Tests', () => {
   test('creates an SVG element', () => {
     const chart = createChart(mockFlareObject);
-    console.log(chart);
     const chartContainer = document.createElement('div');
     chartContainer.id = 'chart';
-
-    // document.body.appendChild(chart);
 
     expect(chart).toBeDefined();
     
