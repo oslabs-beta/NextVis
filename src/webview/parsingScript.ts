@@ -1,27 +1,32 @@
-import * as path from 'path';
-import * as fs from 'fs';
-import * as parser from '@babel/parser';
-import traverse, { NodePath } from '@babel/traverse';
-import * as t from '@babel/types';
+import * as path from "path";
+import * as fs from "fs";
+import * as parser from "@babel/parser";
+import traverse, { NodePath } from "@babel/traverse";
+import * as t from "@babel/types";
 
 interface FileObject {
   file: string;
   name: string;
   path?: Set<string>;
   matcher?: Set<string>;
+  startLine?: number;
+  endLine?: number;
 }
 
 interface FinalObject {
   name: string;
   children: FinalObject[];
-  type: 'file' | 'function' | 'path';
+  type: "file" | "function" | "path";
   matcher?: string[];
+  startLine?: number;
+  endLine?: number;
+  filePath?: string;
 }
 
 interface ImportData {
   source: string;
   specifiers: {
-    imported: string | 'default';
+    imported: string | "default";
     local: string;
   }[];
 }
@@ -31,18 +36,20 @@ interface ExportData {
   file: string;
   path?: Set<string>;
   matcher?: Set<string>;
+  startLine?: number;
+  endLine?: number;
 }
 
 const dynamicMatcherRegex = /matcher:\s*\[\s*['"](.+?)['"]\s*\]/;
 const pathRegex = /(?:\/[^\s,`']+|\b\w*\/\w*\b)/;
 const invalidPatterns = [
-  'application/json',
-  'text/html',
-  'text/css',
-  'application/xml',
-  'charset=',
-  'Content-Type',
-  'Authorization',
+  "application/json",
+  "text/html",
+  "text/css",
+  "application/xml",
+  "charset=",
+  "Content-Type",
+  "Authorization",
 ];
 
 const parsingScript = async (
@@ -50,13 +57,19 @@ const parsingScript = async (
 ): Promise<FinalObject | undefined> => {
   const finalObjectCreator = (
     arrayOfFinalExports: FileObject[],
-    finalObject: FinalObject = { name: '', children: [], type: 'file' }
+    finalObject: FinalObject = { name: "", children: [], type: "file" }
   ): FinalObject => {
-
     // edge case: file does not contain a matcher or does not specify any paths
-    if ((arrayOfFinalExports.length === 1 && !arrayOfFinalExports[0].path) ||
-      (arrayOfFinalExports.length === 1 && !arrayOfFinalExports[0].matcher)) {
-      return { name: path.parse(filePath).base , children: [], type: 'file' };
+    if (
+      (arrayOfFinalExports.length === 1 && !arrayOfFinalExports[0].path) ||
+      (arrayOfFinalExports.length === 1 && !arrayOfFinalExports[0].matcher)
+    ) {
+      return {
+        name: path.parse(filePath).base,
+        children: [],
+        type: "file",
+        filePath: filePath,
+      };
     }
 
     // given the array, iterate through each object, this will be a new node everytime\
@@ -68,11 +81,12 @@ const parsingScript = async (
       let cutPath = path.parse(object.file).base;
 
       // if finalObject is empty then the first iteration is the intial one and this is the root path
-      if (finalObject.name === '' && cutPath === rootCutPath) {
+      if (finalObject.name === "" && cutPath === rootCutPath) {
         finalObject.name = rootCutPath;
         finalObject.children = [];
-        finalObject.type = 'file';
+        finalObject.type = "file";
         finalObject.matcher = object.matcher ? [...object.matcher] : [];
+        finalObject.filePath = object.file;
       }
 
       // we now have { name: rootPath, children: [], type: 'file', matcher:[] }
@@ -89,8 +103,9 @@ const parsingScript = async (
           finalObject.children.push({
             name: cutPath,
             children: [],
-            type: 'file',
+            type: "file",
             matcher: object.matcher ? [...object.matcher] : [],
+            filePath: object.file,
           });
         }
         // now we need to select out current file
@@ -107,7 +122,10 @@ const parsingScript = async (
           selectedChildFileObject?.children.push({
             name: object.name,
             children: [],
-            type: 'function',
+            type: "function",
+            startLine: object.startLine,
+            endLine: object.endLine,
+            filePath: object.file,
           });
         }
         // now we need to select our current middle ware function
@@ -127,7 +145,7 @@ const parsingScript = async (
               selectedChildFunctionObject.children.push({
                 name: path,
                 children: [],
-                type: 'path',
+                type: "path",
               });
             }
           });
@@ -145,7 +163,10 @@ const parsingScript = async (
           finalObject.children.push({
             name: object.name,
             children: [],
-            type: 'function',
+            type: "function",
+            startLine: object.startLine,
+            endLine: object.endLine,
+            filePath: object.file,
           });
         }
         // select our current function
@@ -163,37 +184,40 @@ const parsingScript = async (
               selectedChildFunctionObject.children.push({
                 name: path,
                 children: [],
-                type: 'path',
+                type: "path",
               });
             }
           });
         }
       }
     });
+    console.log("FINALOBJECT", finalObject);
     return finalObject;
   };
 
   const pairMatcherWithFile = async (fileObject: FileObject): Promise<void> => {
-    const content = fs.readFileSync(fileObject.file, 'utf8');
-      // If the line contains the word 'matcher' or any relevant keyword, apply regex matching
-        // Extract paths from the line using regex
+    const content = fs.readFileSync(fileObject.file, "utf8");
+    // If the line contains the word 'matcher' or any relevant keyword, apply regex matching
+    // Extract paths from the line using regex
     const matches = content.match(dynamicMatcherRegex);
     // If matches are found, normalize them
     if (matches) {
       matches.forEach((match) => {
-         // Normalize the match
+        // Normalize the match
         const normalizedMatch = match
           .replace(/^matcher:\s*\[/, "")
           .replace(/\]$/, "")
           .replace(/^['"]|['"]$/g, "")
           .trim();
-           // Add the normalized match to the matcher set in file object
+        // Add the normalized match to the matcher set in file object
         fileObject.matcher?.add(`'${normalizedMatch}'`);
       });
     }
   };
 
-  const pairPathWithMiddleware = async (fileObject: FileObject): Promise<void> => {
+  const pairPathWithMiddleware = async (
+    fileObject: FileObject
+  ): Promise<void> => {
     // Initialize `path` and `matcher` if they are undefined
     if (!fileObject.path) {
       fileObject.path = new Set();
@@ -201,45 +225,52 @@ const parsingScript = async (
     if (!fileObject.matcher) {
       fileObject.matcher = new Set();
     }
-  
+
     // Read the file content
-    const content = fs.readFileSync(fileObject.file, 'utf8');
-    const lines = content.split('\n');
+    const content = fs.readFileSync(fileObject.file, "utf8");
+    const lines = content.split("\n");
     let inFunction = false;
-  
+
     // Process each line
     lines.forEach((line) => {
       const cleanLine = line.trim();
-      const regex = new RegExp(`\\bexport\\b(?:\\s+\\w+)*\\s+function\\s+${fileObject.name}\\b`);
+      const regex = new RegExp(
+        `\\bexport\\b(?:\\s+\\w+)*\\s+function\\s+${fileObject.name}\\b`
+      );
       const secondRegex = new RegExp(`\\bexport\\b`);
-  
+
       // Check if we're exiting the function
       if (secondRegex.test(cleanLine) && inFunction) {
         inFunction = false;
       }
-  
+
       // Check if we're entering the target function
       if (regex.test(cleanLine)) {
         inFunction = true;
       }
-  
+
       // If we're inside the function, process the line
       if (inFunction) {
         // Remove comments from the line
         const noCommentsText = cleanLine
-          .replace(/\/\/.*$/gm, '') // Remove single-line comments
-          .replace(/\/\*[\s\S]*?\*\//g, ''); // Remove multi-line comments
-  
+          .replace(/\/\/.*$/gm, "") // Remove single-line comments
+          .replace(/\/\*[\s\S]*?\*\//g, ""); // Remove multi-line comments
+
         // Skip lines that start with 'import' or 'require'
-        if (noCommentsText.trim().startsWith('import') || noCommentsText.trim().startsWith('require')) {
+        if (
+          noCommentsText.trim().startsWith("import") ||
+          noCommentsText.trim().startsWith("require")
+        ) {
           return;
         }
-  
+
         // Extract paths using the pathRegex
         const matches = noCommentsText.match(pathRegex);
         if (matches) {
           // Filter out invalid paths
-          const validPaths = matches.filter((path) => !invalidPatterns.some((pattern) => path.includes(pattern)));
+          const validPaths = matches.filter(
+            (path) => !invalidPatterns.some((pattern) => path.includes(pattern))
+          );
           // Add valid paths to the fileObject.path Set
           validPaths.forEach((match) => fileObject.path?.add(match));
         }
@@ -251,10 +282,10 @@ const parsingScript = async (
     filePath: string,
     finalExports: FileObject[] = []
   ): Promise<FileObject[]> => {
-    const code = fs.readFileSync(filePath, 'utf8');
+    const code = fs.readFileSync(filePath, "utf8");
     const ast = parser.parse(code, {
-      sourceType: 'module',
-      plugins: ['typescript', 'jsx'],
+      sourceType: "module",
+      plugins: ["typescript", "jsx"],
     });
 
     const imports: ImportData[] = [];
@@ -266,7 +297,11 @@ const parsingScript = async (
           source: path.node.source.value,
           specifiers: path.node.specifiers.map((spec) => ({
             imported:
-              spec.type === 'ImportSpecifier' ? (t.isIdentifier(spec.imported) ? spec.imported.name : spec.imported.value) : 'default',
+              spec.type === "ImportSpecifier"
+                ? t.isIdentifier(spec.imported)
+                  ? spec.imported.name
+                  : spec.imported.value
+                : "default",
             local: spec.local.name,
           })),
         });
@@ -280,6 +315,8 @@ const parsingScript = async (
                 exports.push({
                   name: decl.id.name,
                   file: filePath,
+                  startLine: path.node.loc?.start.line,
+                  endLine: path.node.loc?.end.line,
                 });
               }
             });
@@ -287,6 +324,8 @@ const parsingScript = async (
             exports.push({
               name: declaration.id.name,
               file: filePath,
+              startLine: declaration.loc?.start.line,
+              endLine: declaration.loc?.end.line,
             });
           }
         } else if (path.node.specifiers) {
@@ -295,6 +334,8 @@ const parsingScript = async (
               exports.push({
                 name: spec.exported.name,
                 file: filePath,
+                startLine: path.node.loc?.start.line,
+                endLine: path.node.loc?.end.line,
               });
             }
           });
@@ -309,11 +350,15 @@ const parsingScript = async (
           exports.push({
             name: declaration.id.name,
             file: filePath,
+            startLine: declaration.loc?.start.line,
+            endLine: declaration.loc?.end.line,
           });
         } else if (t.isArrowFunctionExpression(declaration)) {
           exports.push({
-            name: 'default',
+            name: "default",
             file: filePath,
+            startLine: declaration.loc?.start.line,
+            endLine: declaration.loc?.end.line,
           });
         }
       },
@@ -323,12 +368,23 @@ const parsingScript = async (
 
     await Promise.all(
       imports.map(async (importItem) => {
-        if (importItem.source.includes('.')) {
-          const absolutePath = path.join(
+        if (importItem.source.includes(".")) {
+          // Try TypeScript file first, then JavaScript if TS doesn't exist
+          let absolutePath = path.join(
             path.dirname(filePath),
-            `${importItem.source.replace('./', '')}.ts`
+            `${importItem.source.replace("./", "")}.ts`
           );
-          await analyzeMiddleware(absolutePath, finalExports);
+
+          if (!fs.existsSync(absolutePath)) {
+            absolutePath = path.join(
+              path.dirname(filePath),
+              `${importItem.source.replace("./", "")}.js`
+            );
+          }
+
+          if (fs.existsSync(absolutePath)) {
+            await analyzeMiddleware(absolutePath, finalExports);
+          }
         }
       })
     );
@@ -337,7 +393,7 @@ const parsingScript = async (
     // console.log('exports: ', exports);
 
     const filteredExports = finalExports.filter(
-      (file) => file.name !== 'config'
+      (file) => file.name !== "config"
     );
     await Promise.all(
       filteredExports.map(async (file) => {
@@ -351,7 +407,7 @@ const parsingScript = async (
   const filteredExports = await analyzeMiddleware(filePath);
 
   if (filteredExports.length === 0) {
-    return finalObjectCreator([{ name: '', file: filePath }]);
+    return finalObjectCreator([{ name: "", file: filePath }]);
   }
   return finalObjectCreator(filteredExports);
 };
